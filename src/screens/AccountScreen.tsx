@@ -1,22 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  FlatList,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Animated,
-  Easing
-} from 'react-native';
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-} from 'firebase/auth';
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, Alert, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 import { countryList } from '../utils/countryList';
@@ -29,7 +13,6 @@ export default function AccountScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const styles = accountStyles(insets);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -38,12 +21,8 @@ export default function AccountScreen() {
   const [isLogin, setIsLogin] = useState(true);
   const [countrySearch, setCountrySearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const [fontsLoaded] = useFonts({
-    Silkscreen_400Regular,
-  });
+  const [fontsLoaded] = useFonts({ Silkscreen_400Regular });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -57,18 +36,8 @@ export default function AccountScreen() {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.08,
-          duration: 500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
+        Animated.timing(scaleAnim, { toValue: 1.08, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ])
     ).start();
   }, [scaleAnim]);
@@ -79,7 +48,6 @@ export default function AccountScreen() {
         ? await signInWithEmailAndPassword(auth, email, password)
         : await createUserWithEmailAndPassword(auth, email, password);
       const user = cred.user;
-
       if (!isLogin) {
         const flag = countryList.find((c) => c.name === country);
         const flagUri = flag ? Image.resolveAssetSource(flag.flag).uri : null;
@@ -89,6 +57,7 @@ export default function AccountScreen() {
           profilePhoto: flagUri,
           coins: 500,
           score: 0,
+          highScore: 0,
           hasWing: false,
           hasStripes: false,
           hasPlate: false,
@@ -97,8 +66,11 @@ export default function AccountScreen() {
           plateEquipped: false,
           createdAt: serverTimestamp()
         });
+        await setDoc(doc(db, 'scores', user.uid), {
+          highScore: 0,
+          createdAt: serverTimestamp()
+        });
       }
-
       navigation.navigate('Menu' as never);
     } catch (err: any) {
       Alert.alert('Auth Error', err.message);
@@ -112,69 +84,28 @@ export default function AccountScreen() {
   if (!fontsLoaded) return null;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.flex}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
       <View style={styles.accountOverlay}>
         <View style={styles.card}>
           <View style={styles.toggleRow}>
-            <TouchableOpacity
-              onPress={() => setIsLogin(true)}
-              style={[styles.toggleButton, isLogin && styles.activeToggle]}
-            >
+            <TouchableOpacity onPress={() => setIsLogin(true)} style={[styles.toggleButton, isLogin && styles.activeToggle]}>
               <Text style={[styles.toggleText, isLogin && styles.activeToggleText]}>LOG IN</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setIsLogin(false)}
-              style={[styles.toggleButton, !isLogin && styles.activeToggle]}
-            >
+            <TouchableOpacity onPress={() => setIsLogin(false)} style={[styles.toggleButton, !isLogin && styles.activeToggle]}>
               <Text style={[styles.toggleText, !isLogin && styles.activeToggleText]}>SIGN UP</Text>
             </TouchableOpacity>
           </View>
-
-          <TextInput
-            style={styles.input}
-            placeholder="EMAIL"
-            value={email}
-            onChangeText={setEmail}
-            placeholderTextColor="#555"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="PASSWORD"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            placeholderTextColor="#555"
-          />
-
+          <TextInput style={styles.input} placeholder="EMAIL" value={email} onChangeText={setEmail} placeholderTextColor="#555" />
+          <TextInput style={styles.input} placeholder="PASSWORD" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor="#555" />
           {!isLogin && (
             <>
-              <TextInput
-                style={styles.input}
-                placeholder="USERNAME"
-                value={username}
-                onChangeText={setUsername}
-                placeholderTextColor="#555"
-              />
-              <TouchableOpacity
-                style={styles.dropdownToggle}
-                onPress={() => setShowDropdown(!showDropdown)}
-              >
-                <Text style={styles.dropdownToggleText}>
-                  {country || 'SELECT COUNTRY'}
-                </Text>
+              <TextInput style={styles.input} placeholder="USERNAME" value={username} onChangeText={setUsername} placeholderTextColor="#555" />
+              <TouchableOpacity style={styles.dropdownToggle} onPress={() => setShowDropdown(!showDropdown)}>
+                <Text style={styles.dropdownToggleText}>{country || 'SELECT COUNTRY'}</Text>
               </TouchableOpacity>
               {showDropdown && (
                 <View style={styles.dropdown}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="SEARCH..."
-                    value={countrySearch}
-                    onChangeText={setCountrySearch}
-                    placeholderTextColor="#555"
-                  />
+                  <TextInput style={styles.input} placeholder="SEARCH..." value={countrySearch} onChangeText={setCountrySearch} placeholderTextColor="#555" />
                   <FlatList
                     data={filteredCountries}
                     keyExtractor={(item) => item.code}
@@ -197,16 +128,12 @@ export default function AccountScreen() {
               )}
             </>
           )}
-
           <TouchableOpacity style={styles.primaryButton} onPress={handleAuth}>
-            <Animated.Text
-              style={[styles.primaryButtonText, { transform: [{ scale: scaleAnim }] }]}
-            >
+            <Animated.Text style={[styles.primaryButtonText, { transform: [{ scale: scaleAnim }] }]}>
               {isLogin ? 'LOG IN' : 'CREATE ACCOUNT'}
             </Animated.Text>
           </TouchableOpacity>
         </View>
-
         <View style={styles.returnButtonContainer}>
           <TouchableOpacity style={styles.returnButton} onPress={() => navigation.goBack()}>
             <Text style={styles.returnText}>RETURN</Text>
