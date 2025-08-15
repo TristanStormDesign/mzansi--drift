@@ -1,28 +1,46 @@
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export const gameStyles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: '#000' 
-  },
+const SPACING = 16;
+const BUTTON_SIZE = 65;
 
-  text: { 
-    color: '#fff', 
-    fontSize: 24, 
-    marginBottom: 20 
-  },
+export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+      paddingTop: insets.top,
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
+    },
 
-  button: { 
-    backgroundColor: '#333', 
-    paddingVertical: 15, 
-    paddingHorizontal: 30, 
-    borderRadius: 8 
-  },
+    title: {
+      color: '#fff',
+      fontSize: 28,
+      fontFamily: 'Silkscreen_400Regular',
+      textAlign: 'center',
+      marginVertical: SPACING,
+    },
 
-  buttonText: { 
-    color: '#fff', 
-    fontSize: 18 
-  }
-});
+    returnButtonContainer: {
+      position: 'absolute',
+      bottom: insets.bottom + SPACING,
+      left: insets.left + SPACING,
+      right: insets.right + SPACING,
+    },
+
+    returnButton: {
+      backgroundColor: '#000',
+      borderWidth: 5,
+      borderColor: '#ccc',
+      height: BUTTON_SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    returnButtonText: {
+      color: '#fff',
+      fontSize: 28,
+      fontFamily: 'Silkscreen_400Regular',
+    },
+  });

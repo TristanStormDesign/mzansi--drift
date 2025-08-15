@@ -1,37 +1,26 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import BackButton from '../components/BackButton';
-import { gameStyles as styles } from '../styles/GameStyles';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { gameStyles } from '../styles/GameStyles';
 
 export default function GameScreen() {
-  const [crashed, setCrashed] = useState(false);
-
-  const startGame = () => {
-    setCrashed(false);
-  };
-
-  const crashGame = () => {
-    setCrashed(true);
-  };
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const styles = gameStyles(insets);
 
   return (
     <View style={styles.container}>
-      <BackButton />
-      {!crashed ? (
-        <>
-          <Text style={styles.text}>Game Running</Text>
-          <TouchableOpacity style={styles.button} onPress={crashGame}>
-            <Text style={styles.buttonText}>Simulate Crash</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Text style={styles.text}>Crashed!</Text>
-          <TouchableOpacity style={styles.button} onPress={startGame}>
-            <Text style={styles.buttonText}>Retry</Text>
-          </TouchableOpacity>
-        </>
-      )}
+      <Text style={styles.title}>GAME</Text>
+
+      <View style={styles.returnButtonContainer}>
+        <TouchableOpacity
+          style={styles.returnButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.returnButtonText}>RETURN</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
