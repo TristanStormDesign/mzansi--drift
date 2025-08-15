@@ -1,21 +1,37 @@
-import React, { useEffect } from 'react';
-import { View, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { splashStyles as styles } from '../styles/SplashStyles';
 
 export default function SplashScreen() {
   const navigation = useNavigation();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true
+      }),
+      Animated.delay(4200),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true
+      })
+    ]).start(() => {
       navigation.navigate('Menu' as never);
-    }, 2000);
-    return () => clearTimeout(timer);
+    });
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Splash Screen</Text>
+      <Animated.Image
+        source={require('../assets/splash/splash-bg.webp')}
+        style={[styles.image, { opacity: fadeAnim }]}
+        resizeMode="cover"
+      />
     </View>
   );
 }
