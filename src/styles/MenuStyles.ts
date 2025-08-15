@@ -9,174 +9,90 @@ export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
+      paddingTop: insets.top + 20,
     },
-    userBox: {
-      position: 'absolute',
-      top: 20,
-      left: 20,
-      backgroundColor: 'rgba(0,0,0,0.4)',
-      borderRadius: 8,
-      padding: 6,
-      zIndex: 1,
+    topBar: {
+      backgroundColor: 'rgba(255,255,255,0.85)',
+      borderRadius: 20,
+      padding: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 20,
+      marginBottom: 20,
     },
-    username: {
-      color: '#fff',
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
+    userInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
-    flag: {
+    flagIcon: {
       width: 32,
       height: 20,
-      marginTop: 4,
     },
-    score: {
-      color: '#fff',
+    username: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      marginTop: 4,
+      fontSize: 16,
+      color: '#000',
     },
-    rightMenu: {
-      position: 'absolute',
-      top: '50%',
-      right: 20,
-      transform: [{ translateY: -100 }],
+    coinBar: {
+      flexDirection: 'row',
       alignItems: 'center',
+      gap: 6,
+    },
+    coinIcon: {
+      width: 24,
+      height: 24,
+    },
+    coinText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 16,
+      color: '#000',
+    },
+    contentRow: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+    },
+    carContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    carImage: {
+      width: '60%',
+      height: '40%',
+    },
+    menuColumn: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 16,
     },
     navButton: {
       backgroundColor: '#fff',
       borderRadius: 12,
       padding: 8,
-      marginVertical: 6,
     },
     navIcon: {
       width: 40,
       height: 40,
     },
-    playButtonContainer: {
+    startButtonContainer: {
       position: 'absolute',
       bottom: insets.bottom + 20,
       left: 20,
       right: 20,
     },
-    playButton: {
-      backgroundColor: 'rgba(47,93,80,0.85)',
+    startButton: {
+      backgroundColor: green,
       borderRadius: 12,
       paddingVertical: 20,
       alignItems: 'center',
     },
-    playButtonText: {
-      color: '#fff',
+    startButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
       fontSize: 20,
-      fontFamily: 'Silkscreen_400Regular',
-    },
-    accountOverlay: {
-      flex: 1,
-      justifyContent: 'space-between',
-      padding: 20,
-      backgroundColor: 'transparent',
-    },
-    card: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 20,
-      padding: 24,
-    },
-    toggleRow: {
-      flexDirection: 'row',
-      marginBottom: 24,
-      backgroundColor: 'rgba(255,255,255,0.6)',
-      borderRadius: 12,
-    },
-    toggleButton: {
-      flex: 1,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    toggleText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#333',
-    },
-    activeToggle: {
-      backgroundColor: darkGreen,
-    },
-    activeToggleText: {
-      color: '#fff',
-    },
-    input: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-      marginBottom: 14,
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      borderWidth: 1,
-      borderColor: green,
-      color: '#000',
-    },
-    dropdownToggle: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-      borderWidth: 1,
-      borderColor: green,
-      marginBottom: 14,
-    },
-    dropdownToggleText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: '#000',
-    },
-    dropdown: {
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: green,
-      maxHeight: 150,
-      marginBottom: 14,
-    },
-    countryRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 10,
-    },
-    flagSmall: {
-      width: 24,
-      height: 16,
-      marginRight: 8,
-    },
-    countryName: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: '#000',
-    },
-    primaryButton: {
-      backgroundColor: 'rgba(47,93,80,0.85)',
-      borderRadius: 12,
-      paddingVertical: 20,
-      alignItems: 'center',
-    },
-    primaryButtonText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#fff',
-    },
-    returnButtonContainer: {
-      position: 'absolute',
-      bottom: insets.bottom + 20,
-      left: 20,
-      right: 20,
-    },
-    returnButton: {
-      backgroundColor: 'rgba(47,93,80,0.85)',
-      borderRadius: 12,
-      paddingVertical: 20,
-      alignItems: 'center',
-    },
-    returnText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
       color: '#fff',
     },
   });

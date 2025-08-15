@@ -17,7 +17,7 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 import { countryList } from '../utils/countryList';
 import { accountStyles } from '../styles/AccountStyles';
@@ -87,6 +87,15 @@ export default function AccountScreen() {
           username,
           country,
           profilePhoto: flagUri,
+          coins: 500,
+          score: 0,
+          hasWing: false,
+          hasStripes: false,
+          hasPlate: false,
+          wingEquipped: false,
+          stripesEquipped: false,
+          plateEquipped: false,
+          createdAt: serverTimestamp()
         });
       }
 

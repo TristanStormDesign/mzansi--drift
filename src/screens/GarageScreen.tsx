@@ -28,14 +28,19 @@ export default function GarageScreen() {
   const [coinBalance, setCoinBalance] = useState(0);
   const [username, setUsername] = useState('');
   const [countryFlag, setCountryFlag] = useState('');
+
   const [hasWing, setHasWing] = useState(false);
   const [hasStripes, setHasStripes] = useState(false);
   const [hasPlate, setHasPlate] = useState(false);
 
+  const [wingEquipped, setWingEquipped] = useState(false);
+  const [stripesEquipped, setStripesEquipped] = useState(false);
+  const [plateEquipped, setPlateEquipped] = useState(false);
+
   const upgradeCosts = {
-    wing: 200,
-    stripes: 150,
-    plate: 100,
+    hasWing: 200,
+    hasStripes: 150,
+    hasPlate: 100,
   };
 
   useEffect(() => {
@@ -52,52 +57,71 @@ export default function GarageScreen() {
           setHasWing(data.hasWing || false);
           setHasStripes(data.hasStripes || false);
           setHasPlate(data.hasPlate || false);
+          setWingEquipped(data.wingEquipped || false);
+          setStripesEquipped(data.stripesEquipped || false);
+          setPlateEquipped(data.plateEquipped || false);
         }
       }
     };
     fetchUserData();
   }, []);
 
-  const handleUpgradeAction = async (key, cost) => {
+  const handleUpgradeAction = async (
+    field: string,
+    cost: number,
+    equippedSetter: React.Dispatch<React.SetStateAction<boolean>>,
+    ownedSetter: React.Dispatch<React.SetStateAction<boolean>>,
+    isEquipped: boolean,
+    isOwned: boolean
+  ) => {
     const user = auth.currentUser;
     if (!user) return;
-
     const ref = doc(db, 'users', user.uid);
     const snap = await getDoc(ref);
     if (!snap.exists()) return;
-
     const data = snap.data();
-    const owned = data[key] || false;
-
-    if (!owned) {
-      if (data.coins >= cost) {
-        await updateDoc(ref, { [key]: true, coins: data.coins - cost });
-        setCoinBalance(prev => prev - cost);
-        if (key === 'hasWing') setHasWing(true);
-        if (key === 'hasStripes') setHasStripes(true);
-        if (key === 'hasPlate') setHasPlate(true);
+    const currentCoins = data.coins || 0;
+    if (!isOwned) {
+      if (currentCoins >= cost) {
+        await updateDoc(ref, {
+          [field]: true,
+          coins: currentCoins - cost,
+          [`${field.replace('has', '').toLowerCase()}Equipped`]: true,
+        });
+        setCoinBalance(currentCoins - cost);
+        ownedSetter(true);
+        equippedSetter(true);
       }
-    } else {
-      const newValue = !owned;
-      await updateDoc(ref, { [key]: newValue });
-      if (key === 'hasWing') setHasWing(newValue);
-      if (key === 'hasStripes') setHasStripes(newValue);
-      if (key === 'hasPlate') setHasPlate(newValue);
+      return;
     }
+    const newValue = !isEquipped;
+    await updateDoc(ref, {
+      [`${field.replace('has', '').toLowerCase()}Equipped`]: newValue,
+    });
+    equippedSetter(newValue);
   };
 
   const carImage = useMemo(() => {
-    if (hasWing && hasStripes && hasPlate) return stockWingStripesPlate;
-    if (hasWing && hasStripes) return stockWingStripes;
-    if (hasWing && hasPlate) return stockWingPlate;
-    if (hasStripes && hasPlate) return stockStripesPlate;
-    if (hasWing) return stockWing;
-    if (hasStripes) return stockStripes;
-    if (hasPlate) return stockPlate;
+    if (wingEquipped && stripesEquipped && plateEquipped) return stockWingStripesPlate;
+    if (wingEquipped && stripesEquipped) return stockWingStripes;
+    if (wingEquipped && plateEquipped) return stockWingPlate;
+    if (stripesEquipped && plateEquipped) return stockStripesPlate;
+    if (wingEquipped) return stockWing;
+    if (stripesEquipped) return stockStripes;
+    if (plateEquipped) return stockPlate;
     return stock;
-  }, [hasWing, hasStripes, hasPlate]);
+  }, [wingEquipped, stripesEquipped, plateEquipped]);
 
-  const renderUpgradeRow = (label, image, key, cost, owned) => (
+  const renderUpgradeRow = (
+    label: string,
+    image: any,
+    field: string,
+    cost: number,
+    isOwned: boolean,
+    isEquipped: boolean,
+    equippedSetter: React.Dispatch<React.SetStateAction<boolean>>,
+    ownedSetter: React.Dispatch<React.SetStateAction<boolean>>
+  ) => (
     <View style={styles.upgradeRowContainer}>
       <View style={styles.upgradeInfoCard}>
         <Text style={styles.upgradeText}>{label}</Text>
@@ -105,15 +129,17 @@ export default function GarageScreen() {
       </View>
       <TouchableOpacity
         style={styles.actionButton}
-        onPress={() => handleUpgradeAction(key, cost)}
+        onPress={() => handleUpgradeAction(field, cost, equippedSetter, ownedSetter, isEquipped, isOwned)}
       >
-        {owned ? (
-          <Text style={styles.equipText}>Equip</Text>
-        ) : (
+        {!isOwned ? (
           <View style={styles.priceContent}>
             <Image source={coinIcon} style={styles.coinSmall} />
             <Text style={styles.priceText}>{cost}</Text>
           </View>
+        ) : isEquipped ? (
+          <Text style={styles.equipText}>Unequip</Text>
+        ) : (
+          <Text style={styles.equipText}>Equip</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -143,9 +169,9 @@ export default function GarageScreen() {
         <View style={styles.card}>
           <Text style={styles.heading}>UPGRADES</Text>
           <View style={styles.upgradeList}>
-            {renderUpgradeRow('Wing', wingIcon, 'hasWing', upgradeCosts.wing, hasWing)}
-            {renderUpgradeRow('Stripes', stripesIcon, 'hasStripes', upgradeCosts.stripes, hasStripes)}
-            {renderUpgradeRow('Plate', plateIcon, 'hasPlate', upgradeCosts.plate, hasPlate)}
+            {renderUpgradeRow('Wing', wingIcon, 'hasWing', upgradeCosts.hasWing, hasWing, wingEquipped, setWingEquipped, setHasWing)}
+            {renderUpgradeRow('Stripes', stripesIcon, 'hasStripes', upgradeCosts.hasStripes, hasStripes, stripesEquipped, setStripesEquipped, setHasStripes)}
+            {renderUpgradeRow('Plate', plateIcon, 'hasPlate', upgradeCosts.hasPlate, hasPlate, plateEquipped, setPlateEquipped, setHasPlate)}
           </View>
         </View>
       </ScrollView>
