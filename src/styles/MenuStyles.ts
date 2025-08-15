@@ -1,90 +1,54 @@
 import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const SPACING = 16;
+const CONTENT_WIDTH = '80%';
+const BUTTON_SIZE = 65;
 
 export const menuStyles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
     backgroundColor: '#000',
+    justifyContent: 'flex-end',
+  },
+  bottomSection: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40
+    paddingBottom: SafeAreaView.length ? 0 : SPACING, // Safe area padding
   },
-
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20
-  },
-
-  car: {
-    width: 160,
-    height: 100,
-    marginRight: 15
-  },
-
-  statsBlock: {
-    backgroundColor: '#111',
-    borderRadius: 8,
-    padding: 10,
-    minWidth: 140
-  },
-
-  statsText: {
-    color: '#fff',
-    fontSize: 14,
-    marginBottom: 5
-  },
-
-  flagRow: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-
-  flag: {
-    width: 20,
-    height: 14,
-    marginRight: 5
-  },
-
   playButton: {
-    backgroundColor: '#333',
-    borderRadius: 8,
-    width: '80%',
-    aspectRatio: 5,
+    backgroundColor: '#000',
+    borderWidth: 3,
+    borderColor: '#fff',
+    width: CONTENT_WIDTH,
+    height: BUTTON_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 20
+    marginBottom: SPACING,
   },
-
   playButtonText: {
     color: '#fff',
-    fontSize: 20
+    fontSize: 14,
   },
-
   navRow: {
     flexDirection: 'row',
+    width: CONTENT_WIDTH,
     justifyContent: 'space-between',
-    width: '80%'
+    marginBottom: SPACING,
   },
-
   navButton: {
-    backgroundColor: '#333',
-    borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 5,
-    aspectRatio: 1,
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    backgroundColor: '#000',
+    borderWidth: 3,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
-
   navIcon: {
-    width: 28,
-    height: 28,
-    marginBottom: 5
+    width: '60%',
+    height: '60%',
   },
-
-  navButtonText: {
-    color: '#fff',
-    fontSize: 14
-  }
+  settingsBorder: { borderColor: '#D53927' },
+  accountBorder: { borderColor: '#0071DC' },
+  garageBorder: { borderColor: '#1C8832' },
+  rankingsBorder: { borderColor: '#B28832' },
 });
