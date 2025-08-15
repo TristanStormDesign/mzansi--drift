@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { menuStyles as styles } from '../styles/MenuStyles';
 
 export default function MenuScreen() {
   const navigation = useNavigation();
@@ -8,6 +9,9 @@ export default function MenuScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Main Menu</Text>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Game' as never)}>
+        <Text style={styles.buttonText}>Play Game</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Settings' as never)}>
         <Text style={styles.buttonText}>Settings</Text>
       </TouchableOpacity>
@@ -23,10 +27,3 @@ export default function MenuScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000', padding: 20 },
-  title: { color: '#fff', fontSize: 32, marginBottom: 40 },
-  button: { backgroundColor: '#333', paddingVertical: 15, paddingHorizontal: 40, borderRadius: 8, marginVertical: 10, width: '80%', alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 18 }
-});

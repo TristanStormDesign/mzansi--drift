@@ -7,6 +7,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import GarageScreen from './src/screens/GarageScreen';
 import RankingsScreen from './src/screens/RankingsScreen';
+import GameScreen from './src/screens/GameScreen';
 
 const Stack = createStackNavigator();
 
@@ -20,7 +21,9 @@ export default function App() {
         <Stack.Screen name="Account" component={AccountScreen} />
         <Stack.Screen name="Garage" component={GarageScreen} />
         <Stack.Screen name="Rankings" component={RankingsScreen} />
+        <Stack.Screen name="Game" component={GameScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
