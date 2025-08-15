@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, TouchableOpacity, Text, Image, Animated, Easing } from 'react-native';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 import { menuStyles } from '../styles/MenuStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,23 +35,25 @@ export default function MenuScreen() {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
         const ref = doc(db, 'users', user.uid);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          setUsername(data.username || '');
-          setProfilePhoto(data.profilePhoto || null);
-          setCoinBalance(data.coins || 0);
-          setHasWing(data.hasWing || false);
-          setHasStripes(data.hasStripes || false);
-          setHasPlate(data.hasPlate || false);
-          setWingEquipped(data.wingEquipped || false);
-          setStripesEquipped(data.stripesEquipped || false);
-          setPlateEquipped(data.plateEquipped || false);
-        }
+        const unsubscribeDoc = onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            setUsername(data.username || '');
+            setProfilePhoto(data.profilePhoto || null);
+            setCoinBalance(data.coins || 0);
+            setHasWing(data.hasWing || false);
+            setHasStripes(data.hasStripes || false);
+            setHasPlate(data.hasPlate || false);
+            setWingEquipped(data.wingEquipped || false);
+            setStripesEquipped(data.stripesEquipped || false);
+            setPlateEquipped(data.plateEquipped || false);
+          }
+        });
+        return unsubscribeDoc;
       } else {
         setCurrentUser(null);
         setUsername('');
@@ -65,7 +67,7 @@ export default function MenuScreen() {
         setPlateEquipped(false);
       }
     });
-    return unsubscribe;
+    return unsubscribeAuth;
   }, []);
 
   useEffect(() => {
@@ -108,9 +110,11 @@ export default function MenuScreen() {
           <Image source={carImage()} style={styles.carImage} resizeMode="contain" />
         </View>
         <View style={styles.menuColumn}>
-          <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Account' as never)}>
-            <Image source={require('../assets/menu/account-icon.webp')} style={styles.navIcon} resizeMode="contain" />
-          </TouchableOpacity>
+          {!currentUser && (
+            <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Account' as never)}>
+              <Image source={require('../assets/menu/account-icon.webp')} style={styles.navIcon} resizeMode="contain" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Settings' as never)}>
             <Image source={require('../assets/menu/settings-icon.webp')} style={styles.navIcon} resizeMode="contain" />
           </TouchableOpacity>
