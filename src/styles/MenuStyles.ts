@@ -13,12 +13,12 @@ export const menuStyles = StyleSheet.create({
   },
   bottomSection: {
     alignItems: 'center',
-    paddingBottom: SafeAreaView.length ? 0 : SPACING, // Safe area padding
+    paddingBottom: SafeAreaView.length ? 0 : SPACING,
   },
   playButton: {
     backgroundColor: '#000',
-    borderWidth: 3,
-    borderColor: '#fff',
+    borderWidth: 5,
+    borderColor: '#ccc',
     width: CONTENT_WIDTH,
     height: BUTTON_SIZE,
     alignItems: 'center',
@@ -27,7 +27,8 @@ export const menuStyles = StyleSheet.create({
   },
   playButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 28,
+    fontFamily: 'Silkscreen_400Regular',
   },
   navRow: {
     flexDirection: 'row',
@@ -39,7 +40,7 @@ export const menuStyles = StyleSheet.create({
     width: BUTTON_SIZE,
     height: BUTTON_SIZE,
     backgroundColor: '#000',
-    borderWidth: 3,
+    borderWidth: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
