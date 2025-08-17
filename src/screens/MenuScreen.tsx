@@ -92,6 +92,8 @@ export default function MenuScreen() {
 
   if (!fontsLoaded) return null;
 
+  const isLoggedIn = !!currentUser;
+
   return (
     <View style={styles.flex}>
       <View style={styles.topBar}>
@@ -128,9 +130,45 @@ export default function MenuScreen() {
       </View>
 
       <View style={styles.startButtonContainer}>
-        <TouchableOpacity style={styles.startButton} onPress={() => navigation.navigate('Game' as never)}>
-          <Animated.Text style={[styles.startButtonText, { transform: [{ scale: scaleAnim }] }]}>START</Animated.Text>
-        </TouchableOpacity>
+        <View style={styles.startRow}>
+          <TouchableOpacity style={styles.startButton} onPress={() => navigation.navigate('Game' as never)}>
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <Text
+                style={styles.startButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                allowFontScaling={false}
+              >
+                SINGLE PLAYER
+              </Text>
+            </Animated.View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.startButton,
+              styles.startButtonSecondary,
+              !isLoggedIn && styles.startButtonDisabled,
+            ]}
+            disabled={!isLoggedIn}
+            onPress={() => {
+              if (isLoggedIn) navigation.navigate('Multiplayer' as never);
+            }}
+          >
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <Text
+                style={styles.startButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+                allowFontScaling={false}
+              >
+                MULTIPLAYER
+              </Text>
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

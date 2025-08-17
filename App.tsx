@@ -8,6 +8,7 @@ import AccountScreen from './src/screens/AccountScreen';
 import GarageScreen from './src/screens/GarageScreen';
 import RankingsScreen from './src/screens/RankingsScreen';
 import GameScreen from './src/screens/GameScreen';
+import MultiplayerScreen from './src/screens/MultiplayerScreen';
 
 const Stack = createStackNavigator();
 
@@ -17,7 +18,7 @@ export default function App() {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          cardStyle: { backgroundColor: '#ccc' }
+          cardStyle: { backgroundColor: '#ccc' },
         }}
       >
         <Stack.Screen name="Splash" component={SplashScreen} />
@@ -27,6 +28,7 @@ export default function App() {
         <Stack.Screen name="Garage" component={GarageScreen} />
         <Stack.Screen name="Rankings" component={RankingsScreen} />
         <Stack.Screen name="Game" component={GameScreen} />
+        <Stack.Screen name="Multiplayer" component={MultiplayerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -56,7 +56,7 @@ export default function SettingsScreen() {
     const user = auth.currentUser;
     if (!user) return;
     await updateDoc(doc(db, 'users', user.uid), { username });
-    setOriginalUsername(username); // reset so SAVE disappears
+    setOriginalUsername(username);
   };
 
   const handleLogout = async () => {
@@ -81,7 +81,7 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Game Settings */}
+
         <View style={styles.card}>
           <Text style={styles.heading}>GAME SETTINGS</Text>
           <TouchableOpacity style={styles.primaryButton}>
@@ -92,7 +92,6 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Account Settings */}
         {isLoggedIn && (
           <View style={styles.card}>
             <Text style={styles.heading}>ACCOUNT SETTINGS</Text>
@@ -135,7 +134,6 @@ export default function SettingsScreen() {
         )}
       </ScrollView>
 
-      {/* Fixed Return Button */}
       <View style={styles.returnButtonContainer}>
         <TouchableOpacity style={styles.returnButton} onPress={() => navigation.goBack()}>
           <Text style={styles.returnText}>RETURN</Text>

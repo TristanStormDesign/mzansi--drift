@@ -84,15 +84,32 @@ export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       left: 20,
       right: 20,
     },
+    startRow: {
+      flexDirection: 'row',
+      gap: 12,
+    },
     startButton: {
+      flex: 1,
+      height: 64,
       backgroundColor: green,
       borderRadius: 12,
-      paddingVertical: 20,
+      justifyContent: 'center',
       alignItems: 'center',
+      paddingHorizontal: 16,
+    },
+    startButtonSecondary: {
+      backgroundColor: darkGreen,
+    },
+    startButtonDisabled: {
+      opacity: 0.5,
     },
     startButtonText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 20,
       color: '#fff',
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+      letterSpacing: 0.5,
     },
   });
