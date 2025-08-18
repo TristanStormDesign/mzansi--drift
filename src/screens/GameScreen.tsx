@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, Image, Animated, Easing } from 'react-native';
+import { View, Text, Pressable, Image, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { gameStyles } from '../styles/GameStyles';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, increment, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import coinIcon from '../assets/coin/coin.webp';
 
@@ -56,6 +56,7 @@ export default function GameScreen() {
   const [roadW, setRoadW] = useState(0);
   const [roadH, setRoadH] = useState(0);
   const [obstacles, setObstacles] = useState<Ob[]>([]);
+  const [beatHigh, setBeatHigh] = useState(false);
 
   const stateRef = useRef<GameState>('idle');
   const livesRef = useRef(3);
@@ -83,52 +84,60 @@ export default function GameScreen() {
 
   const lastSavePromiseRef = useRef<Promise<void> | null>(null);
 
+  const localHighRef = useRef(0);
+  const storageKeyRef = useRef('localHighScore:guest');
+
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { livesRef.current = lives; }, [lives]);
   useEffect(() => { laneRef.current = playerLane; }, [playerLane]);
   useEffect(() => { uidRef.current = uid; }, [uid]);
   useEffect(() => { obstaclesRef.current = obstacles; }, [obstacles]);
 
-  useEffect(() => {
-    const loadLocalHigh = async () => {
-      const v = await AsyncStorage.getItem('localHighScore');
-      if (v != null) setHighScore(Number(v) || 0);
-    };
-    loadLocalHigh();
+  const loadLocalHigh = useCallback(async (key: string) => {
+    const v = await AsyncStorage.getItem(key);
+    const hv = v != null ? Number(v) || 0 : 0;
+    setHighScore(hv);
+    localHighRef.current = hv;
   }, []);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
       if (u) {
         setUid(u.uid);
+        uidRef.current = u.uid;
+        storageKeyRef.current = `localHighScore:${u.uid}`;
         const userRef = doc(db, 'users', u.uid);
         const scoreRef = doc(db, 'scores', u.uid);
         const ensureUser = await getDoc(userRef);
-        if (!ensureUser.exists()) await setDoc(userRef, { coins: 0, highScore: 0 }, { merge: true });
+        if (!ensureUser.exists()) await setDoc(userRef, { coins: 0, highScore: 0, createdAt: serverTimestamp() }, { merge: true });
         const ensureScore = await getDoc(scoreRef);
-        if (!ensureScore.exists()) await setDoc(scoreRef, { uid: u.uid, displayName: u.displayName ?? 'Player', highScore: 0 }, { merge: true });
+        if (!ensureScore.exists()) await setDoc(scoreRef, { uid: u.uid, displayName: u.displayName ?? 'Player', highScore: 0, score: 0, createdAt: serverTimestamp() }, { merge: true });
+        await loadLocalHigh(storageKeyRef.current);
         userUnsubRef.current && userUnsubRef.current();
-        const unsubUsers = onSnapshot(userRef, (snap) => setCoinBalance(Number(snap.data()?.coins ?? 0)));
-        const unsubScores = onSnapshot(scoreRef, async (snap) => {
-          const hs = Number(snap.data()?.highScore ?? 0);
-          setHighScore(hs);
-          await AsyncStorage.setItem('localHighScore', String(hs));
+        const unsubUsers = onSnapshot(userRef, (snap) => {
+          const d = snap.data() || {};
+          const srvHigh = Number(d.highScore ?? 0);
+          const srvCoins = Number(d.coins ?? 0);
+          setHighScore((cur) => Math.max(cur, srvHigh));
+          localHighRef.current = Math.max(localHighRef.current, srvHigh);
+          setCoinBalance((cur) => Math.max(cur, srvCoins));
         });
-        userUnsubRef.current = () => { unsubUsers(); unsubScores(); };
+        userUnsubRef.current = () => { unsubUsers(); };
       } else {
         setUid(null);
+        uidRef.current = null;
         setCoinBalance(0);
+        storageKeyRef.current = 'localHighScore:guest';
         userUnsubRef.current && userUnsubRef.current();
         userUnsubRef.current = null;
-        const v = await AsyncStorage.getItem('localHighScore');
-        setHighScore(v ? Number(v) : 0);
+        await loadLocalHigh(storageKeyRef.current);
       }
     });
     return () => {
       unsubAuth();
       userUnsubRef.current && userUnsubRef.current();
     };
-  }, []);
+  }, [loadLocalHigh]);
 
   const computeCarSize = useCallback((w: number) => {
     const cw = Math.min(120, w * 0.22);
@@ -170,31 +179,23 @@ export default function GameScreen() {
   const persistResultsRefFn = useRef<(finalScore: number, earned: number) => Promise<void>>(async () => {});
   useEffect(() => {
     persistResultsRefFn.current = async (finalScore: number, earned: number) => {
-      const localNext = Math.max(highScore, finalScore);
-      setHighScore(localNext);
-      await AsyncStorage.setItem('localHighScore', String(localNext));
       const id = uidRef.current;
       if (!id) return;
       const uRef = doc(db, 'users', id);
       const sRef = doc(db, 'scores', id);
-      lastSavePromiseRef.current = runTransaction(db, async (tx) => {
+      await runTransaction(db, async (tx) => {
         const uSnap = await tx.get(uRef);
         const sSnap = await tx.get(sRef);
-        const prevU = uSnap.exists() ? Number(uSnap.data()?.highScore ?? 0) : 0;
-        const prevS = sSnap.exists() ? Number(sSnap.data()?.highScore ?? 0) : 0;
-        const nextHigh = Math.max(prevU, prevS, finalScore);
-        tx.set(uRef, { highScore: nextHigh, coins: increment(earned) }, { merge: true });
-        tx.set(sRef, {
-          uid: id,
-          displayName: auth.currentUser?.displayName ?? 'Player',
-          highScore: nextHigh,
-          score: nextHigh,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+        const prevUHigh = uSnap.exists() ? Number(uSnap.data()?.highScore ?? 0) : 0;
+        const prevSHigh = sSnap.exists() ? Number(sSnap.data()?.highScore ?? 0) : 0;
+        const prevCoins = uSnap.exists() ? Number(uSnap.data()?.coins ?? 0) : 0;
+        const nextHigh = Math.max(prevUHigh, prevSHigh, finalScore);
+        const newCoins = prevCoins + earned;
+        tx.set(uRef, { highScore: nextHigh, coins: newCoins }, { merge: true });
+        tx.set(sRef, { uid: id, displayName: auth.currentUser?.displayName ?? 'Player', highScore: nextHigh, score: finalScore, updatedAt: serverTimestamp() }, { merge: true });
       });
-      await lastSavePromiseRef.current;
     };
-  }, [highScore]);
+  }, []);
 
   const setObstaclesSafe = useCallback((updater: (prev: Ob[]) => Ob[]) => {
     setObstacles((prev) => {
@@ -211,23 +212,6 @@ export default function GameScreen() {
       return prev.filter(x => x.id !== id);
     });
   }, [setObstaclesSafe]);
-
-  const startAnim = useCallback((o: Ob) => {
-    const total = o.endY - o.startY;
-    const done = o.lastY - o.startY;
-    const progress = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
-    const baseRemaining = Math.max(50, Math.round((1 - progress) * o.duration));
-    const remaining = Math.max(120, Math.round(baseRemaining / Math.max(1, speedRef.current)));
-    o.running = true;
-    Animated.timing(o.anim, {
-      toValue: o.endY,
-      duration: remaining,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished && stateRef.current !== 'game_over') removeObstacle(o.id);
-    });
-  }, [removeObstacle]);
 
   const spawnObstacle = useCallback((forceLane?: Lane, forceType?: ObstacleType) => {
     if (roadH <= 0 || carHRef.current <= 0) return;
@@ -254,12 +238,7 @@ export default function GameScreen() {
     const listenerId = anim.addListener(({ value }) => { ob.lastY = value; });
     ob.listenerId = listenerId;
     setObstaclesSafe(prev => [...prev, ob]);
-    Animated.timing(anim, {
-      toValue: endY,
-      duration,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    Animated.timing(anim, { toValue: endY, duration, useNativeDriver: true }).start(({ finished }) => {
       if (finished && stateRef.current !== 'game_over') removeObstacle(id);
     });
     lastSpawnAtRef.current = Date.now();
@@ -295,11 +274,7 @@ export default function GameScreen() {
       if (stateRef.current === 'game_over') { scheduleNextSpawn(); return; }
       const l = chooseLane();
       const preventWall = otherLaneHasEarlyObstacle(l);
-      if (preventWall) {
-        spawnObstacle(l, 'pothole');
-      } else {
-        spawnObstacle(l, type);
-      }
+      if (preventWall) spawnObstacle(l, 'pothole'); else spawnObstacle(l, type);
       scheduleNextSpawn();
     }, delay);
   }, [chooseLane, otherLaneHasEarlyObstacle, spawnObstacle]);
@@ -327,18 +302,30 @@ export default function GameScreen() {
     }, 1000);
   }, []);
 
-  const rectsOverlap = (a: {x:number;y:number;w:number;h:number}, b: {x:number;y:number;w:number;h:number}) =>
+  const rectsOverlap = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
   const handleGameOver = useCallback(() => {
     freezeAllObstacles();
     clearTimers();
+    const final = Math.floor(scoreFloatRef.current);
+    const earned = Math.floor(coinUnitsRef.current / 5);
+    setScore(final);
+    setRoundCoins(earned);
+    const isNewHigh = final > localHighRef.current;
+    if (isNewHigh) {
+      setHighScore(final);
+      localHighRef.current = final;
+      AsyncStorage.setItem(storageKeyRef.current, String(final));
+      setBeatHigh(true);
+    } else {
+      setBeatHigh(false);
+    }
+    if (uidRef.current) setCoinBalance((c) => c + earned);
     setState('game_over');
     stateRef.current = 'game_over';
-    const earned = Math.max(0, roundCoins);
-    const final = Math.max(0, score);
-    persistResultsRefFn.current(final, earned);
-  }, [freezeAllObstacles, clearTimers, roundCoins, score]);
+    lastSavePromiseRef.current = persistResultsRefFn.current(final, earned);
+  }, [freezeAllObstacles, clearTimers]);
 
   const startCollisionLoop = useCallback(() => {
     collideIntervalRef.current = setInterval(() => {
@@ -484,12 +471,13 @@ export default function GameScreen() {
           {state === 'game_over' && (
             <View style={styles.overlayCard}>
               <Text style={styles.overlayTitle}>GAME OVER</Text>
+              {beatHigh && <Text style={[styles.overlaySub, { color: '#FFD54F' }]}>HIGH SCORE!</Text>}
               <Text style={styles.overlaySub}>Score {score} • Coins +{roundCoins}</Text>
               <View style={styles.overlayRow}>
                 <Pressable
                   style={styles.overlayButton}
                   onPress={async () => {
-                    if (lastSavePromiseRef.current) { try { await lastSavePromiseRef.current; } catch {} }
+                    try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
                     navigation.navigate('Menu' as never);
                   }}
                 >
@@ -497,7 +485,11 @@ export default function GameScreen() {
                 </Pressable>
                 <Pressable
                   style={styles.overlayButton}
-                  onPress={() => setState('idle')}
+                  onPress={async () => {
+                    try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
+                    setBeatHigh(false);
+                    setState('idle');
+                  }}
                 >
                   <Text style={styles.overlayButtonText}>RESTART</Text>
                 </Pressable>
@@ -508,10 +500,13 @@ export default function GameScreen() {
       </View>
 
       <View style={styles.returnButtonContainer}>
-        <Pressable style={styles.returnButton} onPress={async () => {
-          if (lastSavePromiseRef.current) { try { await lastSavePromiseRef.current; } catch {} }
-          navigation.navigate('Menu' as never);
-        }}>
+        <Pressable
+          style={styles.returnButton}
+          onPress={async () => {
+            try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
+            navigation.navigate('Menu' as never);
+          }}
+        >
           <Text style={styles.returnText}>RETURN</Text>
         </Pressable>
       </View>

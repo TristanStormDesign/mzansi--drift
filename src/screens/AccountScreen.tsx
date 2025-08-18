@@ -26,9 +26,7 @@ export default function AccountScreen() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        navigation.navigate('Menu' as never);
-      }
+      if (user) navigation.navigate('Menu' as never);
     });
     return unsubscribe;
   }, []);
@@ -47,10 +45,13 @@ export default function AccountScreen() {
       const cred = isLogin
         ? await signInWithEmailAndPassword(auth, email, password)
         : await createUserWithEmailAndPassword(auth, email, password);
+
       const user = cred.user;
+
       if (!isLogin) {
         const flag = countryList.find((c) => c.name === country);
         const flagUri = flag ? Image.resolveAssetSource(flag.flag).uri : null;
+
         await setDoc(doc(db, 'users', user.uid), {
           username,
           country,
@@ -64,13 +65,18 @@ export default function AccountScreen() {
           wingEquipped: false,
           stripesEquipped: false,
           plateEquipped: false,
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
         });
+
         await setDoc(doc(db, 'scores', user.uid), {
+          uid: user.uid,
+          displayName: username,
           highScore: 0,
-          createdAt: serverTimestamp()
+          score: 0,
+          createdAt: serverTimestamp(),
         });
       }
+
       navigation.navigate('Menu' as never);
     } catch (err: any) {
       Alert.alert('Auth Error', err.message);
