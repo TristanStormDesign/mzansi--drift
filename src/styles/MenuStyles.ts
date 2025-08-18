@@ -1,8 +1,12 @@
+// MenuStyles.ts
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const green = '#2F5D50';
-const darkGreen = '#1f3d35ff';
+const red = '#C62828';
+const redDark = '#8E1B1B';
+const grey = '#2B2B2B';
+const greyDark = '#1A1A1A';
+const lightGrey = '#E0E0E0';
 
 export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
@@ -11,105 +15,121 @@ export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       backgroundColor: 'transparent',
       paddingTop: insets.top + 20,
     },
-    topBar: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 20,
-      padding: 14,
+    topRow: {
       flexDirection: 'row',
-      alignItems: 'center',
       justifyContent: 'space-between',
       marginHorizontal: 20,
       marginBottom: 20,
     },
-    userInfo: {
+    infoCard: {
       flexDirection: 'row',
       alignItems: 'center',
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
       gap: 8,
     },
-    flagIcon: {
-      width: 32,
-      height: 20,
-    },
-    username: {
+    infoText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 16,
-      color: '#000',
+      color: '#fff',
     },
-    coinBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
+    flagIcon: {
+      width: 28,
+      height: 18,
     },
     coinIcon: {
-      width: 24,
-      height: 24,
+      width: 22,
+      height: 22,
     },
-    coinText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#000',
-    },
-    contentRow: {
-      flex: 1,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-    },
-    carContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    carImage: {
-      width: '60%',
-      height: '40%',
-    },
-    menuColumn: {
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: 16,
-    },
-    navButton: {
-      backgroundColor: '#fff',
-      borderRadius: 12,
-      padding: 8,
-    },
-    navIcon: {
-      width: 40,
-      height: 40,
-    },
-    startButtonContainer: {
+    bottomSection: {
       position: 'absolute',
       bottom: insets.bottom + 20,
-      left: 20,
-      right: 20,
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      gap: 20,
     },
-    startRow: {
-      flexDirection: 'row',
+    startButtons: {
+      width: '100%',
+      alignItems: 'center',
       gap: 12,
     },
-    startButton: {
-      flex: 1,
+    pixelButtonOuter: {
+      width: '72%',
       height: 64,
-      backgroundColor: green,
-      borderRadius: 12,
+      backgroundColor: red,
+      borderWidth: 4,
+      borderColor: redDark,
+      borderRadius: 6,
       justifyContent: 'center',
       alignItems: 'center',
-      paddingHorizontal: 16,
     },
-    startButtonSecondary: {
-      backgroundColor: darkGreen,
+    pixelButtonInner: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pixelButtonOuterGrey: {
+      width: '72%',
+      height: 50,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pixelButtonInnerGrey: {
+      flex: 1,
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     startButtonDisabled: {
-      opacity: 0.5,
+      opacity: 0.6,
     },
     startButtonText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 20,
-      color: '#fff',
-      textAlign: 'center',
-      textAlignVertical: 'center',
-      includeFontPadding: false,
-      letterSpacing: 0.5,
+      fontSize: 22,
+      color: lightGrey,
+    },
+    startButtonTextSmall: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 16,
+      color: lightGrey,
+    },
+    menuRow: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 12,
+    },
+    navButtonOuter: {
+      width: 52,
+      height: 52,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    navButtonInner: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    navIcon: {
+      width: 28,
+      height: 28,
+      resizeMode: 'contain',
     },
   });

@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  ScrollView
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { signOut, deleteUser, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -14,12 +7,12 @@ import { auth, db } from '../firebase/firebaseConfig';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { settingsStyles } from '../styles/SettingsStyles';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
+import { PixelTexture } from '../components/PixelTexture';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const styles = settingsStyles(insets);
-
   const [fontsLoaded] = useFonts({ Silkscreen_400Regular });
 
   const [username, setUsername] = useState('');
@@ -77,17 +70,15 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.flex}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.heading}>GAME SETTINGS</Text>
           <TouchableOpacity style={styles.primaryButton}>
+            <PixelTexture baseColor="#a5d6a7" accentColor="#81c784" opacity={0.25} />
             <Text style={styles.primaryButtonText}>MUTE MUSIC</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.primaryButton}>
+            <PixelTexture baseColor="#a5d6a7" accentColor="#81c784" opacity={0.25} />
             <Text style={styles.primaryButtonText}>MUTE SFX</Text>
           </TouchableOpacity>
         </View>
@@ -116,18 +107,18 @@ export default function SettingsScreen() {
 
             {usernameChanged && (
               <TouchableOpacity style={styles.primaryButton} onPress={handleSave}>
+                <PixelTexture baseColor="#a5d6a7" accentColor="#81c784" opacity={0.25} />
                 <Text style={styles.primaryButtonText}>SAVE</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity style={styles.primaryButton} onPress={handleLogout}>
+              <PixelTexture baseColor="#a5d6a7" accentColor="#81c784" opacity={0.25} />
               <Text style={styles.primaryButtonText}>LOG OUT</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.primaryButton, styles.deleteButton]}
-              onPress={handleDeleteAccount}
-            >
+            <TouchableOpacity style={[styles.primaryButton, styles.deleteButton]} onPress={handleDeleteAccount}>
+              <PixelTexture baseColor="#ef9a9a" accentColor="#e57373" opacity={0.25} />
               <Text style={styles.primaryButtonText}>DELETE ACCOUNT</Text>
             </TouchableOpacity>
           </View>
@@ -136,6 +127,7 @@ export default function SettingsScreen() {
 
       <View style={styles.returnButtonContainer}>
         <TouchableOpacity style={styles.returnButton} onPress={() => navigation.goBack()}>
+          <PixelTexture baseColor="#9fa8da" accentColor="#7986cb" opacity={0.25} />
           <Text style={styles.returnText}>RETURN</Text>
         </TouchableOpacity>
       </View>

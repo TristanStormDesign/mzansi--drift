@@ -120,7 +120,7 @@ export default function GameScreen() {
           const srvCoins = Number(d.coins ?? 0);
           setHighScore((cur) => Math.max(cur, srvHigh));
           localHighRef.current = Math.max(localHighRef.current, srvHigh);
-          setCoinBalance((cur) => Math.max(cur, srvCoins));
+          setCoinBalance(srvCoins);
         });
         userUnsubRef.current = () => { unsubUsers(); };
       } else {
@@ -394,28 +394,16 @@ export default function GameScreen() {
   if (!fontsLoaded) return null;
 
   const isLoggedIn = !!uid;
-  const plusText = `+${String(roundCoins).padStart(3, '0')}`;
 
   return (
     <View style={styles.flex}>
       <View style={styles.hudRow}>
-        {isLoggedIn ? (
-          <>
-            <Text style={styles.hudText}>LIVES: {lives}</Text>
-            <Text style={styles.hudText}>SCORE: {score}</Text>
-            <Text style={styles.hudText}>HIGH: {highScore}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Image source={coinIcon} style={{ width: 18, height: 18 }} />
-              <Text style={styles.hudText}>{coinBalance}</Text>
-              <Text style={[styles.hudText, { color: '#00C853' }]}>{plusText}</Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <Text style={styles.hudText}>LIVES: {lives}</Text>
-            <Text style={styles.hudText}>SCORE: {score}</Text>
-            <Text style={styles.hudText}>HIGH: {highScore}</Text>
-          </>
+        <Text style={styles.hudText}>High Score: {highScore}</Text>
+        {isLoggedIn && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Image source={coinIcon} style={{ width: 18, height: 18 }} />
+            <Text style={styles.hudText}>{coinBalance}</Text>
+          </View>
         )}
       </View>
 
@@ -430,6 +418,15 @@ export default function GameScreen() {
           onPressIn={() => { if (stateRef.current === 'running') setPlayerLane(2); }}
           onPressOut={() => { if (stateRef.current === 'running') setPlayerLane(0); }}
         >
+          <View style={styles.hudInside}>
+            <View style={styles.heartsRow}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <View key={i} style={[styles.heart, { opacity: i < lives ? 1 : 0.2 }]} />
+              ))}
+            </View>
+            <Text style={styles.hudText}>Score: {score}</Text>
+          </View>
+
           <View style={styles.centerLine} />
           {obstacles.map((o) => (
             <Animated.View

@@ -2,63 +2,42 @@ import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const green = '#2F5D50';
-const dark = '#1f3d35ff';
 
 export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
-      paddingTop: insets.top + 20,
-      paddingBottom: insets.bottom + 88,
+      paddingTop: insets.top + 10,
+      paddingBottom: insets.bottom + 60,
     },
     hudRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginHorizontal: 20,
-      marginBottom: 20,
-      backgroundColor: 'rgba(255,255,255,0.85)',
+      marginBottom: 12,
+      backgroundColor: 'rgba(255,255,255,0.9)',
       borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 10,
     },
     hudText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 12,
+      fontSize: 13,
       color: '#000',
-    },
-    heartsRow: {
-      flexDirection: 'row',
-      gap: 6,
-      alignItems: 'center',
-    },
-    heart: {
-      width: 22,
-      height: 18,
-      position: 'relative',
-    },
-    heartHalf: {
-      position: 'absolute',
-      width: 10,
-      height: 16,
-      top: 1,
-      backgroundColor: '#D64545',
-      borderRadius: 4,
     },
     card: {
       flex: 1,
-      marginHorizontal: 20,
-      marginBottom: 20,
-      backgroundColor: 'rgba(255,255,255,0.85)',
+      marginHorizontal: 16,
+      marginBottom: 16,
+      backgroundColor: 'rgba(255,255,255,0.92)',
       borderRadius: 20,
-      padding: 12,
+      overflow: 'hidden',
     },
     road: {
       flex: 1,
-      borderRadius: 14,
       backgroundColor: 'rgba(0,0,0,0.06)',
-      overflow: 'hidden',
       position: 'relative',
     },
     centerLine: {
@@ -70,24 +49,40 @@ export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       backgroundColor: 'rgba(0,0,0,0.15)',
       transform: [{ translateX: -1 }],
     },
-    obstacle: {
+    hudInside: {
       position: 'absolute',
-      borderRadius: 6,
+      top: 10,
+      left: 12,
+      right: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      zIndex: 10,
+    },
+    heartsRow: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    heart: {
+      width: 20,
+      height: 18,
+      backgroundColor: '#D64545',
+      borderRadius: 4,
     },
     overlayCard: {
       position: 'absolute',
       top: '25%',
-      left: 12,
-      right: 12,
-      backgroundColor: 'rgba(255,255,255,0.92)',
+      left: 20,
+      right: 20,
+      backgroundColor: 'rgba(255,255,255,0.95)',
       borderRadius: 16,
-      padding: 20,
+      padding: 24,
       alignItems: 'center',
-      gap: 12,
+      gap: 14,
     },
     overlayTitle: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 20,
+      fontSize: 22,
       color: '#000',
       textAlign: 'center',
     },
@@ -97,7 +92,7 @@ export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       color: '#000',
       opacity: 0.85,
       textAlign: 'center',
-      marginBottom: 4,
+      marginBottom: 6,
     },
     overlayRow: {
       flexDirection: 'row',
@@ -125,19 +120,19 @@ export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
     },
     returnButtonContainer: {
       position: 'absolute',
-      bottom: insets.bottom + 20,
+      bottom: insets.bottom + 16,
       left: 20,
       right: 20,
     },
     returnButton: {
       backgroundColor: green,
       borderRadius: 12,
-      paddingVertical: 20,
+      paddingVertical: 18,
       alignItems: 'center',
     },
     returnText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 20,
+      fontSize: 18,
       color: '#fff',
     },
   });
