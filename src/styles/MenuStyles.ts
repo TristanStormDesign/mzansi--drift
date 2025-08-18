@@ -1,4 +1,3 @@
-// MenuStyles.ts
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -108,12 +107,16 @@ export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
     menuRow: {
       flexDirection: 'row',
       justifyContent: 'center',
+      alignItems: 'flex-start',
+      gap: 22,
+      marginTop: 10,
+    },
+    navItem: {
       alignItems: 'center',
-      gap: 12,
     },
     navButtonOuter: {
-      width: 52,
-      height: 52,
+      width: 58,
+      height: 58,
       backgroundColor: grey,
       borderWidth: 4,
       borderColor: greyDark,
@@ -128,8 +131,58 @@ export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       alignItems: 'center',
     },
     navIcon: {
-      width: 28,
-      height: 28,
+      width: 32,
+      height: 32,
       resizeMode: 'contain',
+    },
+    navLabel: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 10,
+      color: lightGrey,
+      marginTop: 4,
+    },
+    loginToast: {
+      position: 'absolute',
+      top: insets.top + 10,
+      left: 20,
+      right: 20,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 8,
+    },
+    loginToastText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+      textAlign: 'center',
+    },
+    toastIcon: {
+      width: 20,
+      height: 20,
+      resizeMode: 'contain',
+    },
+    highScoreToast: {
+      position: 'absolute',
+      top: '100%',
+      marginTop: 6,
+      alignSelf: 'flex-start',
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+    },
+    toastText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 12,
+      color: lightGrey,
     },
   });
