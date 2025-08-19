@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, Alert, KeyboardAvoidingView, Platform, Animated, Dimensions, PanResponder } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, KeyboardAvoidingView, Platform, Animated, Dimensions, PanResponder } from 'react-native';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
@@ -25,6 +25,20 @@ export default function AccountScreen() {
 
   const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
 
+  const [toastMsg, setToastMsg] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const showErrorToast = (msg: string) => {
+    setToastMsg(msg);
+    setShowToast(true);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => setShowToast(false));
+  };
+
   useEffect(() => {
     Animated.timing(slideAnim, {
       toValue: 0,
@@ -34,6 +48,11 @@ export default function AccountScreen() {
   }, []);
 
   const handleAuth = async () => {
+    if (!email || !password || (!isLogin && (!username || !country))) {
+      showErrorToast('Please fill in all fields');
+      return;
+    }
+
     try {
       const cred = isLogin
         ? await signInWithEmailAndPassword(auth, email, password)
@@ -78,7 +97,16 @@ export default function AccountScreen() {
         navigation.goBack();
       });
     } catch (err: any) {
-      Alert.alert('Auth Error', err.message);
+      const code = err?.code || '';
+      let msg = 'Authentication error. Please check details and try again';
+      if (code === 'auth/invalid-email') msg = 'Invalid email';
+      else if (code === 'auth/missing-password') msg = 'Password required';
+      else if (code === 'auth/wrong-password') msg = 'Incorrect email or password';
+      else if (code === 'auth/user-not-found') msg = 'Account not found';
+      else if (code === 'auth/email-already-in-use') msg = 'Email already registered';
+      else if (code === 'auth/weak-password') msg = 'Password too weak';
+      else if (code === 'auth/too-many-requests') msg = 'Too many attempts, try later';
+      showErrorToast(msg);
     }
   };
 
@@ -119,6 +147,27 @@ export default function AccountScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      {showToast && (
+        <Animated.View
+          style={[
+            styles.toast,
+            {
+              opacity: toastAnim,
+              transform: [
+                {
+                  translateY: toastAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-10, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.toastText}>{toastMsg}</Text>
+        </Animated.View>
+      )}
+
       <Animated.View
         style={[styles.card, { transform: [{ translateY: slideAnim }] }]}
         {...panResponder.panHandlers}
@@ -140,7 +189,7 @@ export default function AccountScreen() {
               </TouchableOpacity>
             </View>
 
-            <TextInput style={styles.input} placeholder="EMAIL" value={email} onChangeText={setEmail} placeholderTextColor="#888" />
+            <TextInput style={styles.input} placeholder="EMAIL" value={email} onChangeText={setEmail} placeholderTextColor="#888" autoCapitalize="none" keyboardType="email-address" />
             <TextInput style={styles.input} placeholder="PASSWORD" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor="#888" />
 
             {!isLogin && (

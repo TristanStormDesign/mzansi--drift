@@ -53,7 +53,6 @@ export const garageStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
     carImage: {
       width: '100%',
       height: 180,
-      transform: [{ rotate: '90deg' }],
       resizeMode: 'contain',
     },
     upgradeSection: {

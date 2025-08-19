@@ -1,84 +1,107 @@
 import { StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EdgeInsets } from 'react-native-safe-area-context';
 
-const green = '#2F5D50';
+const grey = '#2B2B2B';
+const greyDark = '#1A1A1A';
+const lightGrey = '#E0E0E0';
 
-export const rankingsStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
+export const rankingsStyles = (insets: EdgeInsets) =>
   StyleSheet.create({
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
-      paddingTop: insets.top + 20,
-    },
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingBottom: insets.bottom + 100,
-      gap: 20,
+      justifyContent: 'flex-end',
     },
     card: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 20,
-      padding: 24,
+      backgroundColor: '#0F1518',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      paddingTop: 10,
+      width: '100%',
+    },
+    dragHandleWrapper: {
+      alignItems: 'center',
+      marginTop: 10,
+      marginBottom: 20,
+    },
+    dragHandle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: '#4A5A6A',
     },
     heading: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 18,
+      fontSize: 28,
+      color: lightGrey,
       textAlign: 'center',
-      marginBottom: 20,
-      color: '#000',
+      marginBottom: 30,
     },
     listContainer: {
-      gap: 5,
+      gap: 10,
     },
     playerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-      borderWidth: 1,
-      marginBottom: 14,
-    },
-    rankText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      width: 30,
-      textAlign: 'center',
+      borderWidth: 4,
+      borderRadius: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: grey,
     },
     medalIcon: {
-      width: 30,
-      height: 30,
-      marginRight: 5,
-    },
-    flagIcon: {
-      width: 24,
-      height: 16,
+      width: 28,
+      height: 28,
       marginRight: 8,
     },
-    usernameText: {
+    rankText: {
+      width: 28,
+      textAlign: 'center',
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
+      fontSize: 16,
+      color: lightGrey,
+      marginRight: 8,
+    },
+    flagSmall: {
+      width: 24,
+      height: 16,
+      borderRadius: 2,
+      marginRight: 8,
+      backgroundColor: greyDark,
+    },
+    usernameText: {
       flex: 1,
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 16,
+      color: lightGrey,
     },
     scoreText: {
+      minWidth: 50,
+      textAlign: 'right',
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
+      fontSize: 16,
+      color: lightGrey,
+      marginLeft: 8,
     },
-    returnButtonContainer: {
-      position: 'absolute',
-      bottom: insets.bottom + 20,
-      left: 20,
-      right: 20,
+    bottomSection: {
+      marginTop: 20,
+      gap: 16,
     },
     returnButton: {
-      backgroundColor: green,
-      borderRadius: 12,
-      paddingVertical: 20,
+      backgroundColor: '#4A5A6A',
+      borderWidth: 4,
+      borderColor: '#2F3B47',
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     returnText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 20,
-      color: '#fff',
+      fontSize: 18,
+      color: lightGrey,
     },
   });
