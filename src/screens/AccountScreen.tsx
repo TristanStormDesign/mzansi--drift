@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, Alert, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, Alert, KeyboardAvoidingView, Platform, Animated, Dimensions, PanResponder } from 'react-native';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 import { countryList } from '../utils/countryList';
@@ -21,24 +21,17 @@ export default function AccountScreen() {
   const [isLogin, setIsLogin] = useState(true);
   const [countrySearch, setCountrySearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
   const [fontsLoaded] = useFonts({ Silkscreen_400Regular });
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) navigation.navigate('Menu' as never);
-    });
-    return unsubscribe;
-  }, []);
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.08, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  }, [scaleAnim]);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleAuth = async () => {
     try {
@@ -77,11 +70,46 @@ export default function AccountScreen() {
         });
       }
 
-      navigation.navigate('Menu' as never);
+      Animated.timing(slideAnim, {
+        toValue: Dimensions.get('window').height,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
+        navigation.goBack();
+      });
     } catch (err: any) {
       Alert.alert('Auth Error', err.message);
     }
   };
+
+  const handleClose = () => {
+    Animated.timing(slideAnim, {
+      toValue: Dimensions.get('window').height,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => navigation.goBack());
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => gesture.dy > 10,
+      onPanResponderMove: (_, gesture) => {
+        if (gesture.dy > 0) {
+          slideAnim.setValue(gesture.dy);
+        }
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy > 100) {
+          handleClose();
+        } else {
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   const filteredCountries = countryList.filter((c) =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
@@ -91,61 +119,75 @@ export default function AccountScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-      <View style={styles.accountOverlay}>
-        <View style={styles.card}>
-          <View style={styles.toggleRow}>
-            <TouchableOpacity onPress={() => setIsLogin(true)} style={[styles.toggleButton, isLogin && styles.activeToggle]}>
-              <Text style={[styles.toggleText, isLogin && styles.activeToggleText]}>LOG IN</Text>
+      <Animated.View
+        style={[styles.card, { transform: [{ translateY: slideAnim }] }]}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.dragHandleWrapper}>
+          <View style={styles.dragHandle} />
+        </View>
+
+        <Text style={styles.heading}>ACCOUNT</Text>
+
+        <View style={styles.formWrapper}>
+          <View style={styles.formSection}>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity onPress={() => setIsLogin(true)} style={[styles.toggleButton, isLogin && styles.activeLogin]}>
+                <Text style={[styles.toggleText, isLogin && styles.activeLoginText]}>LOG IN</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsLogin(false)} style={[styles.toggleButton, !isLogin && styles.activeSignup]}>
+                <Text style={[styles.toggleText, !isLogin && styles.activeSignupText]}>SIGN UP</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput style={styles.input} placeholder="EMAIL" value={email} onChangeText={setEmail} placeholderTextColor="#888" />
+            <TextInput style={styles.input} placeholder="PASSWORD" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor="#888" />
+
+            {!isLogin && (
+              <>
+                <TextInput style={styles.input} placeholder="USERNAME" value={username} onChangeText={setUsername} placeholderTextColor="#888" />
+                <TouchableOpacity style={styles.dropdownToggle} onPress={() => setShowDropdown(!showDropdown)}>
+                  <Text style={styles.dropdownToggleText}>{country || 'SELECT COUNTRY'}</Text>
+                </TouchableOpacity>
+                {showDropdown && (
+                  <View style={styles.dropdown}>
+                    <TextInput style={styles.input} placeholder="SEARCH..." value={countrySearch} onChangeText={setCountrySearch} placeholderTextColor="#888" />
+                    <FlatList
+                      data={filteredCountries}
+                      keyExtractor={(item) => item.code}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={styles.countryRow}
+                          onPress={() => {
+                            setCountry(item.name);
+                            setProfilePhoto(Image.resolveAssetSource(item.flag).uri);
+                            setShowDropdown(false);
+                            setCountrySearch('');
+                          }}
+                        >
+                          <Image source={item.flag} style={styles.flagSmall} />
+                          <Text style={styles.countryName}>{item.name}</Text>
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+
+          <View style={styles.bottomSection}>
+            <TouchableOpacity style={styles.primaryButton} onPress={handleAuth}>
+              <Text style={styles.primaryButtonText}>
+                {isLogin ? 'LOG IN' : 'CREATE ACCOUNT'}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIsLogin(false)} style={[styles.toggleButton, !isLogin && styles.activeToggle]}>
-              <Text style={[styles.toggleText, !isLogin && styles.activeToggleText]}>SIGN UP</Text>
+            <TouchableOpacity style={styles.returnButton} onPress={handleClose}>
+              <Text style={styles.returnText}>RETURN</Text>
             </TouchableOpacity>
           </View>
-          <TextInput style={styles.input} placeholder="EMAIL" value={email} onChangeText={setEmail} placeholderTextColor="#555" />
-          <TextInput style={styles.input} placeholder="PASSWORD" secureTextEntry value={password} onChangeText={setPassword} placeholderTextColor="#555" />
-          {!isLogin && (
-            <>
-              <TextInput style={styles.input} placeholder="USERNAME" value={username} onChangeText={setUsername} placeholderTextColor="#555" />
-              <TouchableOpacity style={styles.dropdownToggle} onPress={() => setShowDropdown(!showDropdown)}>
-                <Text style={styles.dropdownToggleText}>{country || 'SELECT COUNTRY'}</Text>
-              </TouchableOpacity>
-              {showDropdown && (
-                <View style={styles.dropdown}>
-                  <TextInput style={styles.input} placeholder="SEARCH..." value={countrySearch} onChangeText={setCountrySearch} placeholderTextColor="#555" />
-                  <FlatList
-                    data={filteredCountries}
-                    keyExtractor={(item) => item.code}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.countryRow}
-                        onPress={() => {
-                          setCountry(item.name);
-                          setProfilePhoto(Image.resolveAssetSource(item.flag).uri);
-                          setShowDropdown(false);
-                          setCountrySearch('');
-                        }}
-                      >
-                        <Image source={item.flag} style={styles.flagSmall} />
-                        <Text style={styles.countryName}>{item.name}</Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              )}
-            </>
-          )}
-          <TouchableOpacity style={styles.primaryButton} onPress={handleAuth}>
-            <Animated.Text style={[styles.primaryButtonText, { transform: [{ scale: scaleAnim }] }]}>
-              {isLogin ? 'LOG IN' : 'CREATE ACCOUNT'}
-            </Animated.Text>
-          </TouchableOpacity>
         </View>
-        <View style={styles.returnButtonContainer}>
-          <TouchableOpacity style={styles.returnButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.returnText}>RETURN</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }

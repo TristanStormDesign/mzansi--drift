@@ -1,89 +1,128 @@
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const green = '#2F5D50';
-const darkGreen = '#1f3d35ff';
+const grey = '#2B2B2B';
+const greyDark = '#1A1A1A';
+const red = '#C62828';
+const redDark = '#8E1B1B';
+const lightGrey = '#E0E0E0';
+
+const loginGreen = '#1C8C37';
+const loginGreenDark = '#146227';
+const signupYellow = '#F6AF09';
+const signupYellowDark = '#B97F07';
 
 export const accountStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
-      paddingTop: insets.top + 20, // Safe area top spacing
-    },
-    accountOverlay: {
-      flex: 1,
-      paddingHorizontal: 20,
-      paddingBottom: insets.bottom + 20,
-      backgroundColor: 'transparent',
+      justifyContent: 'flex-end',
     },
     card: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 20,
-      padding: 24,
+      backgroundColor: '#0F1518',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
+    },
+    dragHandleWrapper: {
+      alignItems: 'center',
+      marginTop: 10,
+      marginBottom: 20,
+    },
+    dragHandle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: '#4A5A6A',
+    },
+    heading: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 28,
+      color: lightGrey,
+      textAlign: 'center',
+      marginBottom: 30,
+    },
+    formWrapper: {
+      justifyContent: 'flex-start',
+    },
+    formSection: {
+      gap: 16,
       marginBottom: 20,
     },
     toggleRow: {
       flexDirection: 'row',
-      marginBottom: 24,
-      backgroundColor: 'rgba(255,255,255,0.6)',
-      borderRadius: 12,
+      gap: 12,
     },
     toggleButton: {
       flex: 1,
-      paddingVertical: 14,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 48,
     },
     toggleText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#333',
+      fontSize: 14,
+      color: lightGrey,
     },
-    activeToggle: {
-      backgroundColor: darkGreen,
-      borderRadius: 12,
+    activeLogin: {
+      backgroundColor: loginGreen,
+      borderColor: loginGreenDark,
     },
-    activeToggleText: {
-      color: '#fff',
+    activeLoginText: {
+      color: lightGrey,
+    },
+    activeSignup: {
+      backgroundColor: signupYellow,
+      borderColor: signupYellowDark,
+    },
+    activeSignupText: {
+      color: '#222',
     },
     input: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-      marginBottom: 14,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      height: 48,
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 14,
-      borderWidth: 1,
-      borderColor: green,
-      color: '#000',
+      color: lightGrey,
     },
     dropdownToggle: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 14,
-      borderWidth: 1,
-      borderColor: green,
-      marginBottom: 14,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      height: 48,
+      justifyContent: 'center',
     },
     dropdownToggleText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 14,
-      color: '#000',
+      color: lightGrey,
     },
     dropdown: {
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: green,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
       maxHeight: 150,
-      marginBottom: 14,
     },
     countryRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 10,
+      padding: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: greyDark,
     },
     flagSmall: {
       width: 24,
@@ -93,34 +132,39 @@ export const accountStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
     countryName: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 14,
-      color: '#000',
+      color: lightGrey,
+    },
+    bottomSection: {
+      gap: 16,
     },
     primaryButton: {
-      backgroundColor: 'rgba(47,93,80,0.85)',
-      borderRadius: 12,
-      paddingVertical: 20,
+      backgroundColor: red,
+      borderWidth: 4,
+      borderColor: redDark,
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     primaryButtonText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#fff',
-    },
-    returnButtonContainer: {
-      position: 'absolute',
-      bottom: insets.bottom + 20,
-      left: insets.left + 20,
-      right: insets.right + 20,
+      fontSize: 18,
+      color: lightGrey,
     },
     returnButton: {
-      backgroundColor: '#2F5D50',
-      borderRadius: 12,
-      paddingVertical: 20,
+      backgroundColor: '#4A5A6A',
+      borderWidth: 4,
+      borderColor: '#2F3B47',
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     returnText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 20,
-      color: '#fff',
+      fontSize: 18,
+      color: lightGrey,
     },
   });

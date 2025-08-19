@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, StackActions } from '@react-navigation/native';
 import { splashStyles as styles } from '../styles/SplashStyles';
 
 export default function SplashScreen() {
@@ -21,7 +21,7 @@ export default function SplashScreen() {
         useNativeDriver: true
       })
     ]).start(() => {
-      navigation.navigate('Menu' as never);
+      navigation.dispatch(StackActions.replace('Menu' as never));
     });
   }, []);
 

@@ -15,18 +15,29 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: '#ccc' },
-        }}
-      >
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Menu" component={MenuScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="Account" component={AccountScreen} />
-        <Stack.Screen name="Garage" component={GarageScreen} />
-        <Stack.Screen name="Rankings" component={RankingsScreen} />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ presentation: 'transparentModal', cardStyleInterpolator: ({ current }) => ({ cardStyle: { transform: [{ translateY: current.progress.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }] } }) }}
+        />
+        <Stack.Screen
+          name="Account"
+          component={AccountScreen}
+          options={{ presentation: 'transparentModal', cardStyleInterpolator: ({ current }) => ({ cardStyle: { transform: [{ translateY: current.progress.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }] } }) }}
+        />
+        <Stack.Screen
+          name="Garage"
+          component={GarageScreen}
+          options={{ presentation: 'transparentModal', cardStyleInterpolator: ({ current }) => ({ cardStyle: { transform: [{ translateY: current.progress.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }] } }) }}
+        />
+        <Stack.Screen
+          name="Rankings"
+          component={RankingsScreen}
+          options={{ presentation: 'transparentModal', cardStyleInterpolator: ({ current }) => ({ cardStyle: { transform: [{ translateY: current.progress.interpolate({ inputRange: [0, 1], outputRange: [800, 0] }) }] } }) }}
+        />
         <Stack.Screen name="Game" component={GameScreen} />
         <Stack.Screen name="Multiplayer" component={MultiplayerScreen} />
       </Stack.Navigator>

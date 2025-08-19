@@ -109,16 +109,15 @@ export default function MenuScreen() {
         <View style={{ position: 'relative' }}>
           <TouchableOpacity
             style={styles.infoCard}
+            disabled={!isLoggedIn} // disable when logged out
             onPress={() => {
               if (isLoggedIn) {
                 triggerHighScoreToast();
-              } else {
-                navigation.navigate('Account' as never);
               }
             }}
           >
             {profilePhoto ? <Image source={{ uri: profilePhoto }} style={styles.flagIcon} /> : null}
-            <Text style={styles.infoText}>{isLoggedIn ? username : 'LOGIN'}</Text>
+            <Text style={styles.infoText}>{isLoggedIn ? username : 'GUEST'}</Text>
           </TouchableOpacity>
           {isLoggedIn && showHighScoreToast && (
             <Animated.View
@@ -137,7 +136,7 @@ export default function MenuScreen() {
                 },
               ]}
             >
-              <Text style={styles.toastText}>High Score: {highScore}</Text>
+              <Text style={styles.toastText}>Best: {highScore}</Text>
             </Animated.View>
           )}
         </View>
