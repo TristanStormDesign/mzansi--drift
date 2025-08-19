@@ -1,106 +1,150 @@
+// styles/SettingsStyles.ts
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const green = '#4CAF50';
-const red = '#E53935';
-const blue = '#3F51B5';
+const grey = '#2B2B2B';
+const greyDark = '#1A1A1A';
+const lightGrey = '#E0E0E0';
+const sheetBg = '#0F1518';
+const handleBlue = '#4A5A6A';
+const handleBlueDark = '#2F3B47';
+const red = '#C62828';
+const redDark = '#8E1B1B';
 
 export const settingsStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
     flex: {
       flex: 1,
-      backgroundColor: '#F5F5F5',
-      paddingTop: insets.top + 20,
-    },
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingBottom: insets.bottom + 100,
-      gap: 20,
+      backgroundColor: 'transparent',
+      justifyContent: 'flex-end',
     },
     card: {
-      backgroundColor: '#fff',
-      borderRadius: 12,
-      padding: 24,
-      position: 'relative',
+      backgroundColor: sheetBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
+    },
+    dragHandleWrapper: {
+      alignItems: 'center',
+      marginTop: 10,
+      marginBottom: 20,
+    },
+    dragHandle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: handleBlue,
     },
     heading: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 22,
+      fontSize: 28,
+      color: lightGrey,
       textAlign: 'center',
-      marginBottom: 20,
-      color: '#000',
+      marginBottom: 30,
     },
-    label: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#222',
-      marginTop: 10,
-      marginBottom: 4,
-    },
-    value: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: '#000',
-      marginBottom: 10,
-    },
-    input: {
-      backgroundColor: '#fff',
-      borderWidth: 2,
-      borderColor: green,
-      color: '#000',
-      paddingHorizontal: 12,
-      paddingVertical: 12,
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      marginBottom: 14,
-      borderRadius: 8,
-    },
-    countryRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 14,
-    },
-    flagSmall: {
-      width: 28,
-      height: 18,
-      marginRight: 8,
-      borderWidth: 1,
-      borderColor: '#000',
+    bottomSection: {
+      gap: 16,
     },
     primaryButton: {
-      backgroundColor: green,
-      borderRadius: 8,
-      overflow: 'hidden',
-      position: 'relative',
-      paddingVertical: 20,
-      marginBottom: 14,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
       alignItems: 'center',
-    },
-    deleteButton: {
-      backgroundColor: red,
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     primaryButtonText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 18,
-      color: '#fff',
+      color: lightGrey,
     },
-    returnButtonContainer: {
-      position: 'absolute',
-      bottom: insets.bottom + 20,
-      left: 20,
-      right: 20,
+    dangerButton: {
+      backgroundColor: red,
+      borderWidth: 4,
+      borderColor: redDark,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     returnButton: {
-      backgroundColor: blue,
-      borderRadius: 8,
-      overflow: 'hidden',
-      position: 'relative',
-      paddingVertical: 20,
+      backgroundColor: handleBlue,
+      borderWidth: 4,
+      borderColor: handleBlueDark,
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     returnText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 22,
-      color: '#fff',
+      fontSize: 18,
+      color: lightGrey,
+    },
+    overlayWrap: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      justifyContent: 'flex-end',
+    },
+    overlaySheet: {
+      backgroundColor: sheetBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
+      maxHeight: '60%',
+    },
+    confirmText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    rowButtons: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+    },
+    cancelButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 18,
+      color: lightGrey,
+    },
+    redButton: {
+      flex: 1,
+      backgroundColor: red,
+      borderWidth: 4,
+      borderColor: redDark,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+    },
+    redButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 18,
+      color: lightGrey,
     },
   });
