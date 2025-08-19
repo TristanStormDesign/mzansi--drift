@@ -53,7 +53,13 @@ export default function RankingsScreen() {
 
   const handleClose = () => {
     Animated.timing(slideAnim, { toValue: Dimensions.get('window').height, duration: 400, useNativeDriver: true })
-      .start(() => navigation.goBack());
+      .start(() => {
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('Menu' as never);
+        }
+      });
   };
 
   const panResponder = useRef(

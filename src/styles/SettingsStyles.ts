@@ -1,11 +1,10 @@
-// styles/SettingsStyles.ts
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const grey = '#2B2B2B';
 const greyDark = '#1A1A1A';
 const lightGrey = '#E0E0E0';
-const sheetBg = '#0F1518';
+const sheetBg = '#101010';
 const handleBlue = '#4A5A6A';
 const handleBlueDark = '#2F3B47';
 const red = '#C62828';

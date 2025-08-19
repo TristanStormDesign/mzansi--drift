@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, Animated, Dimensions, PanResponder } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { onAuthStateChanged, signOut, deleteUser } from 'firebase/auth';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,8 +17,8 @@ export default function SettingsScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [musicMuted, setMusicMuted] = useState(false);
   const [sfxMuted, setSfxMuted] = useState(false);
-
   const [showDeleteOverlay, setShowDeleteOverlay] = useState(false);
+
   const deleteOverlayY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const slideY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
 
@@ -27,14 +27,11 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsLoggedIn(true);
-        const ref = doc(db, 'users', user.uid);
-        await getDoc(ref);
       } else {
         setIsLoggedIn(false);
-        setShowDeleteOverlay(false);
       }
     });
     return unsub;
@@ -88,13 +85,17 @@ export default function SettingsScreen() {
   };
 
   const handleDelete = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-    await deleteDoc(doc(db, 'users', user.uid));
-    await deleteDoc(doc(db, 'scores', user.uid));
-    await deleteUser(user);
-    closeDeleteOverlay();
-    handleClose();
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+      await deleteDoc(doc(db, 'users', user.uid));
+      await deleteDoc(doc(db, 'scores', user.uid));
+      await deleteUser(user);
+      closeDeleteOverlay();
+      handleClose();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    }
   };
 
   if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
