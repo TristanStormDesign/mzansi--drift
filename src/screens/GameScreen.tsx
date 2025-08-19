@@ -1,13 +1,25 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, Image, Animated, Dimensions, Easing } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, Image, Animated, Dimensions, Easing, PanResponder, Platform, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { gameStyles } from '../styles/GameStyles';
+import { menuStyles } from '../styles/MenuStyles';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../firebase/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, runTransaction, serverTimestamp } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ScrollingRoad from '../components/ScrollingRoad';
+import taxiImg from '../assets/game/taxi.webp';
+import potholeImg from '../assets/game/pothole.webp';
+import stock from '../assets/garage/stock.webp';
+import stockWing from '../assets/garage/stock-wing.webp';
+import stockStripes from '../assets/garage/stock-stripes.webp';
+import stockPlate from '../assets/garage/stock-plate.webp';
+import stockWingStripes from '../assets/garage/stock-wing-stripes.webp';
+import stockWingPlate from '../assets/garage/stock-wing-plate.webp';
+import stockStripesPlate from '../assets/garage/stock-stripes-plate.webp';
+import stockWingStripesPlate from '../assets/garage/stock-wing-stripes-plate.webp';
 import coinIcon from '../assets/coin/coin.webp';
 
 type GameState = 'idle' | 'running' | 'paused' | 'life_lost' | 'game_over';
@@ -42,7 +54,8 @@ function rng(seed: number) {
 
 export default function GameScreen() {
   const insets = useSafeAreaInsets();
-  const styles = gameStyles(insets);
+  const g = gameStyles(insets);
+  const m = menuStyles(insets);
   const navigation = useNavigation();
   const [fontsLoaded] = useFonts({ Silkscreen_400Regular });
 
@@ -58,6 +71,10 @@ export default function GameScreen() {
   const [roadH, setRoadH] = useState(0);
   const [obstacles, setObstacles] = useState<Ob[]>([]);
   const [beatHigh, setBeatHigh] = useState(false);
+  const [wingEquipped, setWingEquipped] = useState(false);
+  const [stripesEquipped, setStripesEquipped] = useState(false);
+  const [plateEquipped, setPlateEquipped] = useState(false);
+  const [roadSpeed, setRoadSpeed] = useState(1);
 
   const [showTopToast, setShowTopToast] = useState(false);
   const [topToastMsg, setTopToastMsg] = useState('');
@@ -65,6 +82,10 @@ export default function GameScreen() {
 
   const [showResumeCountdown, setShowResumeCountdown] = useState(false);
   const [resumeCount, setResumeCount] = useState(3);
+
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [overlayMode, setOverlayMode] = useState<'start' | 'paused' | 'game_over'>('start');
+  const overlayY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
 
   const stateRef = useRef<GameState>('idle');
   const livesRef = useRef(3);
@@ -95,6 +116,19 @@ export default function GameScreen() {
   const localHighRef = useRef(0);
   const storageKeyRef = useRef('localHighScore:guest');
   const shownLiveHighRef = useRef(false);
+
+  const BASE_CAR_W: number = 258;
+  const BASE_CAR_H: number = 388;
+  const BASE_TAXI_W: number = 255;
+  const BASE_TAXI_H: number = 400;
+  const BASE_POT_W: number = 197;
+  const BASE_POT_H: number = 145;
+
+  const loginGreen = '#1C8C37';
+  const loginGreenDark = '#146227';
+  const grey = '#2B2B2B';
+  const greyDark = '#1A1A1A';
+  const lightGrey = '#E0E0E0';
 
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { livesRef.current = lives; }, [lives]);
@@ -130,6 +164,9 @@ export default function GameScreen() {
           setHighScore((cur) => Math.max(cur, srvHigh));
           localHighRef.current = Math.max(localHighRef.current, srvHigh);
           setCoinBalance(srvCoins);
+          setWingEquipped(!!d.wingEquipped);
+          setStripesEquipped(!!d.stripesEquipped);
+          setPlateEquipped(!!d.plateEquipped);
         });
         userUnsubRef.current = () => { unsubUsers(); };
       } else {
@@ -140,6 +177,9 @@ export default function GameScreen() {
         userUnsubRef.current && userUnsubRef.current();
         userUnsubRef.current = null;
         await loadLocalHigh(storageKeyRef.current);
+        setWingEquipped(false);
+        setStripesEquipped(false);
+        setPlateEquipped(false);
       }
     });
     return () => {
@@ -149,11 +189,26 @@ export default function GameScreen() {
   }, [loadLocalHigh]);
 
   const computeCarSize = useCallback((w: number) => {
-    const cw = Math.min(120, w * 0.22);
-    const ch = cw * 0.6;
+    const cw = Math.max(1, w * 0.22);
+    const ratio = BASE_CAR_H / BASE_CAR_W;
+    const ch = cw * ratio;
     carWRef.current = cw;
     carHRef.current = ch;
   }, []);
+
+  const carScale = useCallback(() => {
+    return carWRef.current / BASE_CAR_W;
+  }, []);
+
+  const taxiSize = useCallback(() => {
+    const s = carScale();
+    return { w: Math.round(BASE_TAXI_W * s), h: Math.round(BASE_TAXI_H * s) };
+  }, [carScale]);
+
+  const potholeSize = useCallback(() => {
+    const s = carScale();
+    return { w: Math.round(BASE_POT_W * s), h: Math.round(BASE_POT_H * s) };
+  }, [carScale]);
 
   const laneX = useCallback((lane: Lane) => {
     const pad = 20;
@@ -249,17 +304,16 @@ export default function GameScreen() {
     const s = Math.max(1, speedRef.current);
     const type: ObstacleType = forceType ?? (rngRef.current() < 0.5 ? 'taxi' : 'pothole');
     const lane: Lane = forceLane ?? (rngRef.current() < 0.5 ? 0 : 2);
-    let w = carWRef.current;
-    let h = carHRef.current;
-    let base = 1800;
+    let w = 0;
+    let h = 0;
     if (type === 'pothole') {
-      const sz = Math.max(18, Math.round(carWRef.current * 0.44));
-      w = sz; h = sz; base = 2300;
+      const p = potholeSize();
+      w = p.w; h = p.h;
     } else {
-      w = Math.round(carWRef.current * 0.7);
-      h = Math.round(carHRef.current * 1.6);
-      base = 1400;
+      const t = taxiSize();
+      w = t.w; h = t.h;
     }
+    const base = type === 'pothole' ? 2300 : 1400;
     const duration = Math.max(type === 'pothole' ? 700 : 500, Math.round(base / s));
     const startY = -h - 12;
     const endY = roadH + 80;
@@ -277,7 +331,7 @@ export default function GameScreen() {
     lastSpawnAtRef.current = Date.now();
     lastSpawnLaneRef.current = lane;
     blockCrossUntilRef.current = lastSpawnAtRef.current + Math.floor(700 / s);
-  }, [roadH, setObstaclesSafe, removeObstacle]);
+  }, [roadH, setObstaclesSafe, removeObstacle, taxiSize, potholeSize]);
 
   const chooseLane = useCallback((): Lane => {
     const last = lastSpawnLaneRef.current;
@@ -344,10 +398,13 @@ export default function GameScreen() {
 
   const startSpeedRamp = useCallback(() => {
     speedRef.current = 1;
+    setRoadSpeed(1);
     speedIntervalRef.current = setInterval(() => {
       if (stateRef.current !== 'running') return;
       const cur = speedRef.current + 0.03;
-      speedRef.current = cur > 3 ? 3 : cur;
+      const capped = cur > 3 ? 3 : cur;
+      speedRef.current = capped;
+      setRoadSpeed(capped);
     }, 1000);
   }, []);
 
@@ -374,6 +431,7 @@ export default function GameScreen() {
     setState('game_over');
     stateRef.current = 'game_over';
     lastSavePromiseRef.current = persistResultsRefFn.current(final, earned);
+    openOverlay('game_over');
   }, [freezeAllObstacles, clearTimers]);
 
   const startCollisionLoop = useCallback(() => {
@@ -411,6 +469,20 @@ export default function GameScreen() {
     }, 50);
   }, [carY, laneX, handleGameOver, removeObstacle]);
 
+  const openOverlay = useCallback((mode: 'start' | 'paused' | 'game_over') => {
+    setOverlayMode(mode);
+    setOverlayVisible(true);
+    overlayY.setValue(Dimensions.get('window').height);
+    Animated.timing(overlayY, { toValue: 0, duration: 400, useNativeDriver: true }).start();
+  }, [overlayY]);
+
+  const closeOverlay = useCallback((after?: () => void) => {
+    Animated.timing(overlayY, { toValue: Dimensions.get('window').height, duration: 300, useNativeDriver: true }).start(() => {
+      setOverlayVisible(false);
+      if (after) after();
+    });
+  }, [overlayY]);
+
   const startRun = useCallback(() => {
     if (roadW <= 0 || roadH <= 0) return;
     clearTimers();
@@ -423,6 +495,7 @@ export default function GameScreen() {
     setPlayerLane(0);
     setState('running');
     stateRef.current = 'running';
+    setRoadSpeed(1);
     spawnObstacle();
     scheduleNextSpawn();
     beginScoreTicker();
@@ -436,30 +509,33 @@ export default function GameScreen() {
     freezeAllObstacles();
     setState('paused');
     stateRef.current = 'paused';
-  }, [clearTimers, freezeAllObstacles]);
+    openOverlay('paused');
+  }, [clearTimers, freezeAllObstacles, openOverlay]);
 
   const resumeRun = useCallback(() => {
-    if (stateRef.current !== 'paused') return;
-    setShowResumeCountdown(true);
-    setResumeCount(3);
-    let count = 3;
-    const t = setInterval(() => {
-      count -= 1;
-      if (count <= 0) {
-        clearInterval(t);
-        setShowResumeCountdown(false);
-        setState('running');
-        stateRef.current = 'running';
-        resumeAllObstacles();
-        scheduleNextSpawn();
-        beginScoreTicker();
-        startSpeedRamp();
-        startCollisionLoop();
-      } else {
-        setResumeCount(count);
-      }
-    }, 600);
-  }, [resumeAllObstacles, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop]);
+    closeOverlay(() => {
+      if (stateRef.current !== 'paused') return;
+      setShowResumeCountdown(true);
+      setResumeCount(3);
+      let count = 3;
+      const t = setInterval(() => {
+        count -= 1;
+        if (count <= 0) {
+          clearInterval(t);
+          setShowResumeCountdown(false);
+          setState('running');
+          stateRef.current = 'running';
+          resumeAllObstacles();
+          scheduleNextSpawn();
+          beginScoreTicker();
+          startSpeedRamp();
+          startCollisionLoop();
+        } else {
+          setResumeCount(count);
+        }
+      }, 600);
+    });
+  }, [closeOverlay, resumeAllObstacles, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop]);
 
   const restartToIdle = useCallback(() => {
     clearTimers();
@@ -471,12 +547,21 @@ export default function GameScreen() {
     scoreFloatRef.current = 0;
     coinUnitsRef.current = 0;
     speedRef.current = 1;
+    setRoadSpeed(1);
     setPlayerLane(0);
     setState('idle');
     stateRef.current = 'idle';
     setBeatHigh(false);
     shownLiveHighRef.current = false;
-  }, [clearTimers, freezeAllObstacles, setObstaclesSafe]);
+    openOverlay('start');
+  }, [clearTimers, freezeAllObstacles, setObstaclesSafe, openOverlay]);
+
+  const resetToMenu = useCallback(async () => {
+    try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
+    clearTimers();
+    if (userUnsubRef.current) userUnsubRef.current();
+    (navigation as any).reset({ index: 0, routes: [{ name: 'Menu' }] });
+  }, [clearTimers, navigation]);
 
   useEffect(() => {
     return () => {
@@ -488,80 +573,84 @@ export default function GameScreen() {
     };
   }, [clearTimers, setObstaclesSafe]);
 
-  if (!fontsLoaded) return null;
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 10,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) overlayY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 100) {
+          closeOverlay(() => {
+            if (overlayMode === 'paused') {
+              resumeRun();
+            }
+          });
+        } else {
+          Animated.spring(overlayY, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
 
-  const isLoggedIn = !!uid;
-  const windowH = Dimensions.get('window').height;
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    if (stateRef.current === 'idle') {
+      openOverlay('start');
+    }
+  }, [fontsLoaded, openOverlay]);
+
+  const carImage = useMemo(() => {
+    if (wingEquipped && stripesEquipped && plateEquipped) return stockWingStripesPlate;
+    if (wingEquipped && stripesEquipped) return stockWingStripes;
+    if (wingEquipped && plateEquipped) return stockWingPlate;
+    if (stripesEquipped && plateEquipped) return stockStripesPlate;
+    if (wingEquipped) return stockWing;
+    if (stripesEquipped) return stockStripes;
+    if (plateEquipped) return stockPlate;
+    return stock;
+  }, [wingEquipped, stripesEquipped, plateEquipped]);
+
+  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
 
   return (
-    <View style={styles.flex}>
-      {showTopToast && (
-        <Animated.View
-          style={{
-            position: 'absolute',
-            top: insets.top + 10,
-            left: 20,
-            right: 20,
-            backgroundColor: '#2B2B2B',
-            borderWidth: 4,
-            borderColor: '#1A1A1A',
-            borderRadius: 6,
-            paddingHorizontal: 18,
-            paddingVertical: 16,
-            zIndex: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: topToastAnim,
-            transform: [
-              {
-                translateY: topToastAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-10, 0],
-                }),
-              },
-            ],
-          }}
-        >
-          <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 14, color: '#E0E0E0', textAlign: 'center' }}>{topToastMsg}</Text>
-        </Animated.View>
-      )}
-
-      <View style={styles.hudRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-          <Text style={styles.hudText}>High Score: {highScore}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.hudText}>Score: {score}</Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={m.flex}>
+      <View style={m.topRow}>
+        <View style={{ position: 'relative' }}>
+          <View style={m.infoCard}>
+            <Text style={m.infoText}>BEST: {highScore}</Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          {isLoggedIn && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Image source={coinIcon} style={{ width: 18, height: 18 }} />
-              <Text style={styles.hudText}>{coinBalance}</Text>
-            </View>
-          )}
-          <Pressable
-            onPress={pauseRun}
-            disabled={state !== 'running'}
-            style={{
-              backgroundColor: state === 'running' ? '#4A5A6A' : '#2F3B47',
-              borderWidth: 4,
-              borderColor: '#2F3B47',
-              borderRadius: 6,
-              paddingHorizontal: 14,
-              height: 36,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 14, color: '#E0E0E0' }}>PAUSE</Text>
-          </Pressable>
+        <View style={m.infoCard}>
+          <Image source={coinIcon} style={m.coinIcon} />
+          <Text style={m.infoText}>{coinBalance}</Text>
         </View>
       </View>
 
-      <View style={styles.card}>
+      {showTopToast && (
+        <Animated.View
+          style={[
+            m.loginToast,
+            {
+              opacity: topToastAnim,
+              transform: [
+                {
+                  translateY: topToastAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={m.loginToastText}>{topToastMsg}</Text>
+        </Animated.View>
+      )}
+
+      <View style={g.card}>
         <Pressable
-          style={styles.road}
+          style={g.road}
           onLayout={(e) => {
             setRoadW(e.nativeEvent.layout.width);
             setRoadH(e.nativeEvent.layout.height);
@@ -570,16 +659,16 @@ export default function GameScreen() {
           onPressIn={() => { if (stateRef.current === 'running') setPlayerLane(2); }}
           onPressOut={() => { if (stateRef.current === 'running') setPlayerLane(0); }}
         >
-          <View style={styles.hudInside}>
-            <View style={styles.heartsRow}>
+          <ScrollingRoad paused={state !== 'running'} speed={roadSpeed} heightPx={roadH} />
+
+          <View style={{ position: 'absolute', top: 10, left: 10, right: 10, zIndex: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
               {Array.from({ length: 3 }).map((_, i) => (
-                <View key={i} style={[styles.heart, { opacity: i < lives ? 1 : 0.2 }]} />
+                <View key={i} style={[g.heart, { opacity: i < lives ? 1 : 0.2 }]} />
               ))}
             </View>
-            <Text style={styles.hudText}>Coins: +{roundCoins}</Text>
+            <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: lightGrey }}>{score}</Text>
           </View>
-
-          <View style={styles.centerLine} />
 
           {obstacles.map((o) => (
             <Animated.View
@@ -590,12 +679,13 @@ export default function GameScreen() {
                 top: 0,
                 width: o.w,
                 height: o.h,
-                backgroundColor: o.type === 'taxi' ? '#7E57C2' : '#9575CD',
-                borderRadius: o.type === 'pothole' ? 4 : 8,
+                backgroundColor: 'transparent',
                 transform: [{ translateY: o.anim }],
                 zIndex: 2,
               }}
-            />
+            >
+              <Image source={o.type === 'taxi' ? taxiImg : potholeImg} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </Animated.View>
           ))}
 
           <View
@@ -605,45 +695,12 @@ export default function GameScreen() {
               top: carY(),
               width: carWRef.current,
               height: carHRef.current,
-              backgroundColor: state === 'life_lost' ? '#1f3d35aa' : '#1f3d35ff',
-              borderRadius: 8,
+              backgroundColor: 'transparent',
               zIndex: 3,
             }}
-          />
-
-          {state === 'idle' && (
-            <View style={[styles.overlayCard, { paddingBottom: 20 }]}>
-              <Text style={styles.overlayTitle}>TAP TO START</Text>
-              <Pressable style={styles.overlayButton} onPress={startRun}>
-                <Text style={styles.overlayButtonText}>START</Text>
-              </Pressable>
-              <Text style={styles.overlayHint}>Hold to move RIGHT • Release to stay LEFT</Text>
-            </View>
-          )}
-
-          {state === 'paused' && (
-            <View style={[styles.overlayCard, { paddingBottom: 20 }]}>
-              <Text style={styles.overlayTitle}>PAUSED</Text>
-              <Text style={styles.overlaySub}>Score {score} • Coins +{roundCoins}</Text>
-              <View style={styles.overlayRow}>
-                <Pressable style={styles.overlayButton} onPress={resumeRun}>
-                  <Text style={styles.overlayButtonText}>RESUME</Text>
-                </Pressable>
-                <Pressable style={styles.overlayButton} onPress={() => { restartToIdle(); }}>
-                  <Text style={styles.overlayButtonText}>RESTART</Text>
-                </Pressable>
-              </View>
-              <Pressable
-                style={[styles.overlayButton, { marginTop: 12 }]}
-                onPress={async () => {
-                  try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
-                  navigation.navigate('Menu' as never);
-                }}
-              >
-                <Text style={styles.overlayButtonText}>MENU</Text>
-              </Pressable>
-            </View>
-          )}
+          >
+            <Image source={carImage} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+          </View>
 
           {showResumeCountdown && (
             <View
@@ -659,54 +716,118 @@ export default function GameScreen() {
                 zIndex: 5,
               }}
             >
-              <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 56, color: '#E0E0E0' }}>{resumeCount}</Text>
+              <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 56, color: lightGrey }}>{resumeCount}</Text>
             </View>
           )}
 
-          {state === 'game_over' && (
-            <View style={styles.overlayCard}>
-              <Text style={styles.overlayTitle}>GAME OVER</Text>
-              {beatHigh && <Text style={[styles.overlaySub, { color: '#FFD54F' }]}>HIGH SCORE!</Text>}
-              <Text style={styles.overlaySub}>Score {score} • Coins +{roundCoins}</Text>
-              <View style={styles.overlayRow}>
-                <Pressable
-                  style={styles.overlayButton}
-                  onPress={async () => {
-                    try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
-                    navigation.navigate('Menu' as never);
-                  }}
-                >
-                  <Text style={styles.overlayButtonText}>MENU</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.overlayButton}
-                  onPress={async () => {
-                    try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
-                    setBeatHigh(false);
-                    restartToIdle();
-                  }}
-                >
-                  <Text style={styles.overlayButtonText}>RESTART</Text>
-                </Pressable>
-              </View>
+          <Pressable
+            onPress={pauseRun}
+            disabled={state !== 'running'}
+            style={{
+              position: 'absolute',
+              right: 14,
+              bottom: 14,
+              width: 44,
+              height: 44,
+              backgroundColor: state === 'running' ? '#4A5A6A' : '#2F3B47',
+              borderWidth: 4,
+              borderColor: '#2F3B47',
+              borderRadius: 6,
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 6,
+            }}
+          >
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <View style={{ width: 6, height: 18, backgroundColor: lightGrey }} />
+              <View style={{ width: 6, height: 18, backgroundColor: lightGrey }} />
             </View>
-          )}
+          </Pressable>
         </Pressable>
       </View>
 
-      {(state === 'idle' || state === 'paused' || state === 'game_over') && (
-        <View style={styles.returnButtonContainer}>
-          <Pressable
-            style={styles.returnButton}
-            onPress={async () => {
-              try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
-              navigation.navigate('Menu' as never);
-            }}
-          >
-            <Text style={styles.returnText}>RETURN</Text>
-          </Pressable>
+      {overlayVisible && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end' }}>
+          <Animated.View style={[{ backgroundColor: '#0F1518', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: insets.bottom + 20, paddingTop: 10, width: '100%', transform: [{ translateY: overlayY }] }]} {...panResponder.panHandlers}>
+            <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 20 }}>
+              <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#4A5A6A' }} />
+            </View>
+
+            {overlayMode === 'start' && (
+              <>
+                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 28, color: lightGrey, textAlign: 'center', marginBottom: 30 }}>START GAME</Text>
+                <View style={{ gap: 16 }}>
+                  <Pressable
+                    onPress={() => closeOverlay(startRun)}
+                    style={{ backgroundColor: loginGreen, borderWidth: 4, borderColor: loginGreenDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56, width: '100%' }}
+                  >
+                    <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>START</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={resetToMenu}
+                    style={{ backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56, width: '100%' }}
+                  >
+                    <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>MENU</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+
+            {overlayMode === 'paused' && (
+              <>
+                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 28, color: lightGrey, textAlign: 'center', marginBottom: 30 }}>PAUSED</Text>
+                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: lightGrey, textAlign: 'center', marginBottom: 20 }}>Score {score} • Coins +{roundCoins}</Text>
+                <View style={{ gap: 16 }}>
+                  <View style={{ flexDirection: 'row', gap: 16 }}>
+                    <Pressable
+                      onPress={() => closeOverlay(restartToIdle)}
+                      style={{ flex: 1, backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
+                    >
+                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>RESTART</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={resumeRun}
+                      style={{ flex: 1, backgroundColor: loginGreen, borderWidth: 4, borderColor: loginGreenDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
+                    >
+                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>RESUME</Text>
+                    </Pressable>
+                  </View>
+                  <Pressable
+                    onPress={resetToMenu}
+                    style={{ backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56, width: '100%' }}
+                  >
+                    <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>MENU</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+
+            {overlayMode === 'game_over' && (
+              <>
+                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 28, color: lightGrey, textAlign: 'center', marginBottom: 30 }}>GAME OVER</Text>
+                {beatHigh ? <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: '#FFD54F', textAlign: 'center', marginBottom: 10 }}>HIGH SCORE!</Text> : null}
+                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: lightGrey, textAlign: 'center', marginBottom: 20 }}>Score {score} • Coins +{roundCoins}</Text>
+                <View style={{ gap: 16 }}>
+                  <View style={{ flexDirection: 'row', gap: 16 }}>
+                    <Pressable
+                      onPress={resetToMenu}
+                      style={{ flex: 1, backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
+                    >
+                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>MENU</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => closeOverlay(() => { setBeatHigh(false); restartToIdle(); })}
+                      style={{ flex: 1, backgroundColor: loginGreen, borderWidth: 4, borderColor: loginGreenDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
+                    >
+                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>RESTART</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </>
+            )}
+          </Animated.View>
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
