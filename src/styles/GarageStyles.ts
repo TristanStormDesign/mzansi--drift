@@ -214,7 +214,6 @@ export const garageStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       fontSize: 18,
       color: lightGrey,
     },
-
     toast: {
       position: 'absolute',
       top: insets.top + 10,

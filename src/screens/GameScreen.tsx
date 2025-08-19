@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, Image, Animated } from 'react-native';
+import { View, Text, Pressable, Image, Animated, Dimensions, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { gameStyles } from '../styles/GameStyles';
@@ -10,7 +10,7 @@ import { doc, getDoc, setDoc, onSnapshot, runTransaction, serverTimestamp } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import coinIcon from '../assets/coin/coin.webp';
 
-type GameState = 'idle' | 'running' | 'life_lost' | 'game_over';
+type GameState = 'idle' | 'running' | 'paused' | 'life_lost' | 'game_over';
 type ObstacleType = 'taxi' | 'pothole';
 type Lane = 0 | 2;
 
@@ -27,6 +27,7 @@ type Ob = {
   startY: number;
   endY: number;
   running: boolean;
+  pxPerMs: number;
 };
 
 function rng(seed: number) {
@@ -58,6 +59,13 @@ export default function GameScreen() {
   const [obstacles, setObstacles] = useState<Ob[]>([]);
   const [beatHigh, setBeatHigh] = useState(false);
 
+  const [showTopToast, setShowTopToast] = useState(false);
+  const [topToastMsg, setTopToastMsg] = useState('');
+  const topToastAnim = useRef(new Animated.Value(0)).current;
+
+  const [showResumeCountdown, setShowResumeCountdown] = useState(false);
+  const [resumeCount, setResumeCount] = useState(3);
+
   const stateRef = useRef<GameState>('idle');
   const livesRef = useRef(3);
   const laneRef = useRef<Lane>(0);
@@ -86,6 +94,7 @@ export default function GameScreen() {
 
   const localHighRef = useRef(0);
   const storageKeyRef = useRef('localHighScore:guest');
+  const shownLiveHighRef = useRef(false);
 
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { livesRef.current = lives; }, [lives]);
@@ -161,6 +170,14 @@ export default function GameScreen() {
     return Math.max(0, roadH - bottomPad - carHRef.current);
   }, [roadH]);
 
+  const setObstaclesSafe = useCallback((updater: (prev: Ob[]) => Ob[]) => {
+    setObstacles((prev) => {
+      const next = updater(prev);
+      obstaclesRef.current = next;
+      return next;
+    });
+  }, []);
+
   const clearTimers = useCallback(() => {
     if (spawnTimeoutRef.current) { clearTimeout(spawnTimeoutRef.current); spawnTimeoutRef.current = null; }
     if (scoreIntervalRef.current) { clearInterval(scoreIntervalRef.current); scoreIntervalRef.current = null; }
@@ -170,11 +187,33 @@ export default function GameScreen() {
   }, []);
 
   const freezeAllObstacles = useCallback(() => {
-    setObstacles(prev => {
+    setObstaclesSafe(prev => {
       prev.forEach(o => { o.running = false; o.anim.stopAnimation(); });
       return [...prev];
     });
-  }, []);
+  }, [setObstaclesSafe]);
+
+  const resumeAllObstacles = useCallback(() => {
+    setObstaclesSafe(prev => {
+      prev.forEach(o => {
+        if (o.lastY >= o.endY) return;
+        const remaining = Math.max(0, o.endY - o.lastY);
+        const duration = Math.max(1, Math.round(remaining / o.pxPerMs));
+        o.running = true;
+        Animated.timing(o.anim, {
+          toValue: o.endY,
+          duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished && stateRef.current !== 'game_over' && stateRef.current !== 'paused') {
+            setObstaclesSafe(prev2 => prev2.filter(x => x.id !== o.id));
+          }
+        });
+      });
+      return [...prev];
+    });
+  }, [setObstaclesSafe]);
 
   const persistResultsRefFn = useRef<(finalScore: number, earned: number) => Promise<void>>(async () => {});
   useEffect(() => {
@@ -195,14 +234,6 @@ export default function GameScreen() {
         tx.set(sRef, { uid: id, displayName: auth.currentUser?.displayName ?? 'Player', highScore: nextHigh, score: finalScore, updatedAt: serverTimestamp() }, { merge: true });
       });
     };
-  }, []);
-
-  const setObstaclesSafe = useCallback((updater: (prev: Ob[]) => Ob[]) => {
-    setObstacles((prev) => {
-      const next = updater(prev);
-      obstaclesRef.current = next;
-      return next;
-    });
   }, []);
 
   const removeObstacle = useCallback((id: string) => {
@@ -234,12 +265,14 @@ export default function GameScreen() {
     const endY = roadH + 80;
     const anim = new Animated.Value(startY);
     const id = `${Date.now()}-${Math.floor(rngRef.current() * 1e9)}`;
-    const ob: Ob = { id, type, lane, w, h, anim, lastY: startY, duration, startY, endY, running: true };
+    const totalDist = endY - startY;
+    const pxPerMs = totalDist / duration;
+    const ob: Ob = { id, type, lane, w, h, anim, lastY: startY, duration, startY, endY, running: true, pxPerMs };
     const listenerId = anim.addListener(({ value }) => { ob.lastY = value; });
     ob.listenerId = listenerId;
     setObstaclesSafe(prev => [...prev, ob]);
-    Animated.timing(anim, { toValue: endY, duration, useNativeDriver: true }).start(({ finished }) => {
-      if (finished && stateRef.current !== 'game_over') removeObstacle(id);
+    Animated.timing(anim, { toValue: endY, duration, easing: Easing.linear, useNativeDriver: true }).start(({ finished }) => {
+      if (finished && stateRef.current !== 'game_over' && stateRef.current !== 'paused') removeObstacle(id);
     });
     lastSpawnAtRef.current = Date.now();
     lastSpawnLaneRef.current = lane;
@@ -271,7 +304,7 @@ export default function GameScreen() {
     if (type === 'taxi' && otherLaneHasEarlyObstacle(lane)) base += Math.floor(350 / s);
     const delay = base + Math.floor(jitter * rngRef.current());
     spawnTimeoutRef.current = setTimeout(() => {
-      if (stateRef.current === 'game_over') { scheduleNextSpawn(); return; }
+      if (stateRef.current === 'game_over' || stateRef.current === 'paused') return;
       const l = chooseLane();
       const preventWall = otherLaneHasEarlyObstacle(l);
       if (preventWall) spawnObstacle(l, 'pothole'); else spawnObstacle(l, type);
@@ -279,19 +312,35 @@ export default function GameScreen() {
     }, delay);
   }, [chooseLane, otherLaneHasEarlyObstacle, spawnObstacle]);
 
+  const showTopToastNow = useCallback((msg: string) => {
+    setTopToastMsg(msg);
+    setShowTopToast(true);
+    topToastAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(topToastAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(topToastAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => setShowTopToast(false));
+  }, [topToastAnim]);
+
   const beginScoreTicker = useCallback(() => {
     scoreFloatRef.current = 0;
     coinUnitsRef.current = 0;
+    shownLiveHighRef.current = false;
     scoreIntervalRef.current = setInterval(() => {
       if (stateRef.current !== 'running') return;
       const s = Math.max(1, speedRef.current);
       scoreFloatRef.current += s;
       const nextScore = Math.floor(scoreFloatRef.current);
       setScore(nextScore);
+      if (!shownLiveHighRef.current && nextScore > localHighRef.current) {
+        shownLiveHighRef.current = true;
+        showTopToastNow('NEW HIGH SCORE!');
+      }
       coinUnitsRef.current += 1;
       setRoundCoins(Math.floor(coinUnitsRef.current / 5));
     }, 200);
-  }, []);
+  }, [showTopToastNow]);
 
   const startSpeedRamp = useCallback(() => {
     speedRef.current = 1;
@@ -381,6 +430,54 @@ export default function GameScreen() {
     startCollisionLoop();
   }, [roadW, roadH, clearTimers, spawnObstacle, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop, setObstaclesSafe]);
 
+  const pauseRun = useCallback(() => {
+    if (stateRef.current !== 'running') return;
+    clearTimers();
+    freezeAllObstacles();
+    setState('paused');
+    stateRef.current = 'paused';
+  }, [clearTimers, freezeAllObstacles]);
+
+  const resumeRun = useCallback(() => {
+    if (stateRef.current !== 'paused') return;
+    setShowResumeCountdown(true);
+    setResumeCount(3);
+    let count = 3;
+    const t = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(t);
+        setShowResumeCountdown(false);
+        setState('running');
+        stateRef.current = 'running';
+        resumeAllObstacles();
+        scheduleNextSpawn();
+        beginScoreTicker();
+        startSpeedRamp();
+        startCollisionLoop();
+      } else {
+        setResumeCount(count);
+      }
+    }, 600);
+  }, [resumeAllObstacles, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop]);
+
+  const restartToIdle = useCallback(() => {
+    clearTimers();
+    freezeAllObstacles();
+    setObstaclesSafe(() => []);
+    setLives(3);
+    setScore(0);
+    setRoundCoins(0);
+    scoreFloatRef.current = 0;
+    coinUnitsRef.current = 0;
+    speedRef.current = 1;
+    setPlayerLane(0);
+    setState('idle');
+    stateRef.current = 'idle';
+    setBeatHigh(false);
+    shownLiveHighRef.current = false;
+  }, [clearTimers, freezeAllObstacles, setObstaclesSafe]);
+
   useEffect(() => {
     return () => {
       clearTimers();
@@ -394,17 +491,72 @@ export default function GameScreen() {
   if (!fontsLoaded) return null;
 
   const isLoggedIn = !!uid;
+  const windowH = Dimensions.get('window').height;
 
   return (
     <View style={styles.flex}>
+      {showTopToast && (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            top: insets.top + 10,
+            left: 20,
+            right: 20,
+            backgroundColor: '#2B2B2B',
+            borderWidth: 4,
+            borderColor: '#1A1A1A',
+            borderRadius: 6,
+            paddingHorizontal: 18,
+            paddingVertical: 16,
+            zIndex: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: topToastAnim,
+            transform: [
+              {
+                translateY: topToastAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-10, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 14, color: '#E0E0E0', textAlign: 'center' }}>{topToastMsg}</Text>
+        </Animated.View>
+      )}
+
       <View style={styles.hudRow}>
-        <Text style={styles.hudText}>High Score: {highScore}</Text>
-        {isLoggedIn && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <Text style={styles.hudText}>High Score: {highScore}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Image source={coinIcon} style={{ width: 18, height: 18 }} />
-            <Text style={styles.hudText}>{coinBalance}</Text>
+            <Text style={styles.hudText}>Score: {score}</Text>
           </View>
-        )}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {isLoggedIn && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Image source={coinIcon} style={{ width: 18, height: 18 }} />
+              <Text style={styles.hudText}>{coinBalance}</Text>
+            </View>
+          )}
+          <Pressable
+            onPress={pauseRun}
+            disabled={state !== 'running'}
+            style={{
+              backgroundColor: state === 'running' ? '#4A5A6A' : '#2F3B47',
+              borderWidth: 4,
+              borderColor: '#2F3B47',
+              borderRadius: 6,
+              paddingHorizontal: 14,
+              height: 36,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 14, color: '#E0E0E0' }}>PAUSE</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -424,10 +576,11 @@ export default function GameScreen() {
                 <View key={i} style={[styles.heart, { opacity: i < lives ? 1 : 0.2 }]} />
               ))}
             </View>
-            <Text style={styles.hudText}>Score: {score}</Text>
+            <Text style={styles.hudText}>Coins: +{roundCoins}</Text>
           </View>
 
           <View style={styles.centerLine} />
+
           {obstacles.map((o) => (
             <Animated.View
               key={o.id}
@@ -444,6 +597,7 @@ export default function GameScreen() {
               }}
             />
           ))}
+
           <View
             style={{
               position: 'absolute',
@@ -456,8 +610,9 @@ export default function GameScreen() {
               zIndex: 3,
             }}
           />
+
           {state === 'idle' && (
-            <View style={styles.overlayCard}>
+            <View style={[styles.overlayCard, { paddingBottom: 20 }]}>
               <Text style={styles.overlayTitle}>TAP TO START</Text>
               <Pressable style={styles.overlayButton} onPress={startRun}>
                 <Text style={styles.overlayButtonText}>START</Text>
@@ -465,6 +620,49 @@ export default function GameScreen() {
               <Text style={styles.overlayHint}>Hold to move RIGHT • Release to stay LEFT</Text>
             </View>
           )}
+
+          {state === 'paused' && (
+            <View style={[styles.overlayCard, { paddingBottom: 20 }]}>
+              <Text style={styles.overlayTitle}>PAUSED</Text>
+              <Text style={styles.overlaySub}>Score {score} • Coins +{roundCoins}</Text>
+              <View style={styles.overlayRow}>
+                <Pressable style={styles.overlayButton} onPress={resumeRun}>
+                  <Text style={styles.overlayButtonText}>RESUME</Text>
+                </Pressable>
+                <Pressable style={styles.overlayButton} onPress={() => { restartToIdle(); }}>
+                  <Text style={styles.overlayButtonText}>RESTART</Text>
+                </Pressable>
+              </View>
+              <Pressable
+                style={[styles.overlayButton, { marginTop: 12 }]}
+                onPress={async () => {
+                  try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
+                  navigation.navigate('Menu' as never);
+                }}
+              >
+                <Text style={styles.overlayButtonText}>MENU</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {showResumeCountdown && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#00000066',
+                zIndex: 5,
+              }}
+            >
+              <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 56, color: '#E0E0E0' }}>{resumeCount}</Text>
+            </View>
+          )}
+
           {state === 'game_over' && (
             <View style={styles.overlayCard}>
               <Text style={styles.overlayTitle}>GAME OVER</Text>
@@ -485,7 +683,7 @@ export default function GameScreen() {
                   onPress={async () => {
                     try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
                     setBeatHigh(false);
-                    setState('idle');
+                    restartToIdle();
                   }}
                 >
                   <Text style={styles.overlayButtonText}>RESTART</Text>
@@ -496,17 +694,19 @@ export default function GameScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.returnButtonContainer}>
-        <Pressable
-          style={styles.returnButton}
-          onPress={async () => {
-            try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
-            navigation.navigate('Menu' as never);
-          }}
-        >
-          <Text style={styles.returnText}>RETURN</Text>
-        </Pressable>
-      </View>
+      {(state === 'idle' || state === 'paused' || state === 'game_over') && (
+        <View style={styles.returnButtonContainer}>
+          <Pressable
+            style={styles.returnButton}
+            onPress={async () => {
+              try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
+              navigation.navigate('Menu' as never);
+            }}
+          >
+            <Text style={styles.returnText}>RETURN</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }

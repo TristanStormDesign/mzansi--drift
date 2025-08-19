@@ -1,139 +1,157 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const grey = '#2B2B2B';
 const greyDark = '#1A1A1A';
 const lightGrey = '#E0E0E0';
-const sheetBg = '#0F1518';
-const handleBlue = '#4A5A6A';
-const handleBlueDark = '#2F3B47';
+const red = '#C62828';
+const redDark = '#8E1B1B';
 
-export const garageStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
+export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
       justifyContent: 'flex-end',
     },
-    card: {
-      backgroundColor: sheetBg,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingHorizontal: 20,
-      paddingBottom: insets.bottom + 20,
-      width: '100%',
-    },
-    dragHandleWrapper: {
-      alignItems: 'center',
-      marginTop: 10,
-      marginBottom: 20,
-    },
-    dragHandle: {
-      width: 40,
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: handleBlue,
-    },
-    heading: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 28,
-      color: lightGrey,
-      textAlign: 'center',
-      marginBottom: 20,
-    },
-    previewSection: {
-      alignItems: 'center',
-      marginBottom: 16,
-      gap: 10,
-    },
-    carImage: {
-      width: '100%',
-      height: 180,
-    },
-    balancePill: {
+    hudRow: {
+      position: 'absolute',
+      top: insets.top + 10,
+      left: 20,
+      right: 20,
+      height: 40,
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'center',
-      backgroundColor: grey,
-      borderWidth: 4,
-      borderColor: greyDark,
-      borderRadius: 6,
-      paddingHorizontal: 12,
-      height: 40,
-      gap: 8,
+      justifyContent: 'space-between',
+      zIndex: 10,
     },
-    coinSmall: {
-      width: 20,
-      height: 20,
-      resizeMode: 'contain',
-    },
-    balanceText: {
+    hudText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 14,
       color: lightGrey,
     },
-    upgradeSection: {
-      gap: 12,
-      marginBottom: 20,
+    card: {
+      backgroundColor: '#0F1518',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
     },
-    upgradeRow: {
+    road: {
+      width: '100%',
+      height: Math.floor(Dimensions.get('window').height * 0.62),
+      minHeight: 420,
+      backgroundColor: '#0B1013',
+      borderWidth: 4,
+      borderColor: '#2F3B47',
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    hudInside: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      right: 10,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: grey,
-      borderWidth: 4,
-      borderColor: greyDark,
-      borderRadius: 6,
-      paddingHorizontal: 12,
-      height: 64,
+      zIndex: 3,
     },
-    upgradeInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    upgradeIcon: {
-      width: 32,
-      height: 32,
-      resizeMode: 'contain',
-    },
-    upgradeLabel: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 16,
-      color: lightGrey,
-    },
-    actionButton: {
-      backgroundColor: '#3A3A3A',
-      borderWidth: 4,
-      borderColor: '#222',
-      borderRadius: 6,
-      height: 44,
-      paddingHorizontal: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    priceWrap: {
+    heartsRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
     },
-    priceText: {
+    heart: {
+      width: 16,
+      height: 16,
+      backgroundColor: red,
+      borderWidth: 3,
+      borderColor: redDark,
+      borderRadius: 4,
+    },
+    centerLine: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: '50%',
+      width: 4,
+      marginLeft: -2,
+      backgroundColor: '#4A5A6A',
+      opacity: 0.6,
+    },
+    overlayCard: {
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      top: '25%',
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 12,
+      paddingHorizontal: 20,
+      paddingVertical: 20,
+      alignItems: 'center',
+      zIndex: 4,
+      gap: 12,
+    },
+    overlayTitle: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
+      fontSize: 28,
+      color: lightGrey,
+      textAlign: 'center',
+      marginBottom: 6,
+    },
+    overlaySub: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 16,
+      color: lightGrey,
+      textAlign: 'center',
+    },
+    overlayHint: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 12,
+      color: '#BFC7CE',
+      textAlign: 'center',
+      marginTop: 4,
+    },
+    overlayRow: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 12,
+      marginTop: 6,
+    },
+    overlayButton: {
+      flex: 1,
+      backgroundColor: red,
+      borderWidth: 4,
+      borderColor: redDark,
+      borderRadius: 8,
+      height: 52,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 12,
+    },
+    overlayButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 18,
       color: lightGrey,
     },
-    actionText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: lightGrey,
-    },
-    bottomSection: {
-      gap: 16,
+    returnButtonContainer: {
+      width: '100%',
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 12,
+      paddingTop: 8,
+      backgroundColor: 'transparent',
     },
     returnButton: {
-      backgroundColor: handleBlue,
+      backgroundColor: '#4A5A6A',
       borderWidth: 4,
-      borderColor: handleBlueDark,
+      borderColor: '#2F3B47',
       borderRadius: 6,
       alignItems: 'center',
       justifyContent: 'center',
