@@ -150,8 +150,8 @@ export const menuStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       borderWidth: 4,
       borderColor: greyDark,
       borderRadius: 6,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      paddingHorizontal: 18,
+      paddingVertical: 16,
       zIndex: 10,
     },
     loginToastText: {

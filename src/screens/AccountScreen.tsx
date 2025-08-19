@@ -98,7 +98,7 @@ export default function AccountScreen() {
       });
     } catch (err: any) {
       const code = err?.code || '';
-      let msg = 'Authentication error. Please check details and try again';
+      let msg = 'Incorrect Username Or Password';
       if (code === 'auth/invalid-email') msg = 'Invalid email';
       else if (code === 'auth/missing-password') msg = 'Password required';
       else if (code === 'auth/wrong-password') msg = 'Incorrect email or password';

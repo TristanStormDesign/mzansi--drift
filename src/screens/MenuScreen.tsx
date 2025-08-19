@@ -221,7 +221,7 @@ export default function MenuScreen() {
               if (isLoggedIn) {
                 navigation.navigate('Multiplayer' as never);
               } else {
-                triggerToast('You are logged out. Please Login to play Multiplayer');
+                triggerToast('Please Login to play Multiplayer');
               }
             }}
           >
@@ -257,7 +257,7 @@ export default function MenuScreen() {
                 if (isLoggedIn) {
                   navigation.navigate('Garage' as never);
                 } else {
-                  triggerToast('You are logged out. Please login to use Garage');
+                  triggerToast('Please login to use Garage');
                 }
               }}
             >
