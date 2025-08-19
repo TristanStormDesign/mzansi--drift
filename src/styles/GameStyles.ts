@@ -1,138 +1,149 @@
+// styles/GarageStyles.ts
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const green = '#2F5D50';
+const grey = '#2B2B2B';
+const greyDark = '#1A1A1A';
+const lightGrey = '#E0E0E0';
+const sheetBg = '#0F1518';
+const handleBlue = '#4A5A6A';
+const handleBlueDark = '#2F3B47';
 
-export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
+export const garageStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
-      paddingTop: insets.top + 10,
-      paddingBottom: insets.bottom + 60,
-    },
-    hudRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginHorizontal: 20,
-      marginBottom: 12,
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-    },
-    hudText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 13,
-      color: '#000',
+      justifyContent: 'flex-end',
     },
     card: {
-      flex: 1,
-      marginHorizontal: 16,
+      backgroundColor: sheetBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
+    },
+    dragHandleWrapper: {
+      alignItems: 'center',
+      marginTop: 10,
+      marginBottom: 20,
+    },
+    dragHandle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: handleBlue,
+    },
+    heading: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 28,
+      color: lightGrey,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    previewSection: {
+      alignItems: 'center',
       marginBottom: 16,
-      backgroundColor: 'rgba(255,255,255,0.92)',
-      borderRadius: 20,
-      overflow: 'hidden',
+      gap: 10,
     },
-    road: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.06)',
-      position: 'relative',
+    carImage: {
+      width: '100%',
+      height: 180,
     },
-    centerLine: {
-      position: 'absolute',
-      left: '50%',
-      top: 0,
-      width: 2,
-      height: '100%',
-      backgroundColor: 'rgba(0,0,0,0.15)',
-      transform: [{ translateX: -1 }],
+    balancePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'center',
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      height: 40,
+      gap: 8,
     },
-    hudInside: {
-      position: 'absolute',
-      top: 10,
-      left: 12,
-      right: 12,
+    coinSmall: {
+      width: 20,
+      height: 20,
+      resizeMode: 'contain',
+    },
+    balanceText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+    },
+    upgradeSection: {
+      gap: 12,
+      marginBottom: 20,
+    },
+    upgradeRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      zIndex: 10,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      height: 64,
     },
-    heartsRow: {
+    upgradeInfo: {
       flexDirection: 'row',
-      gap: 6,
-    },
-    heart: {
-      width: 20,
-      height: 18,
-      backgroundColor: '#D64545',
-      borderRadius: 4,
-    },
-    overlayCard: {
-      position: 'absolute',
-      top: '25%',
-      left: 20,
-      right: 20,
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderRadius: 16,
-      padding: 24,
       alignItems: 'center',
-      gap: 14,
+      gap: 10,
     },
-    overlayTitle: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 22,
-      color: '#000',
-      textAlign: 'center',
+    upgradeIcon: {
+      width: 32,
+      height: 32,
+      resizeMode: 'contain',
     },
-    overlaySub: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: '#000',
-      opacity: 0.85,
-      textAlign: 'center',
-      marginBottom: 6,
-    },
-    overlayRow: {
-      flexDirection: 'row',
-      gap: 12,
-      width: '100%',
-    },
-    overlayButton: {
-      flex: 1,
-      backgroundColor: green,
-      borderRadius: 12,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    overlayButtonText: {
+    upgradeLabel: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 16,
-      color: '#fff',
+      color: lightGrey,
     },
-    overlayHint: {
+    actionButton: {
+      backgroundColor: '#3A3A3A',
+      borderWidth: 4,
+      borderColor: '#222',
+      borderRadius: 6,
+      height: 44,
+      paddingHorizontal: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    priceWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    priceText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 12,
-      color: '#000',
-      opacity: 0.8,
-      textAlign: 'center',
+      fontSize: 14,
+      color: lightGrey,
     },
-    returnButtonContainer: {
-      position: 'absolute',
-      bottom: insets.bottom + 16,
-      left: 20,
-      right: 20,
+    actionText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+    },
+    bottomSection: {
+      gap: 16,
     },
     returnButton: {
-      backgroundColor: green,
-      borderRadius: 12,
-      paddingVertical: 18,
+      backgroundColor: handleBlue,
+      borderWidth: 4,
+      borderColor: handleBlueDark,
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     returnText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 18,
-      color: '#fff',
+      color: lightGrey,
     },
   });

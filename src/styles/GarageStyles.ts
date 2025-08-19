@@ -1,149 +1,240 @@
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const green = '#2F5D50';
+const grey = '#2B2B2B';
+const greyDark = '#1A1A1A';
+const lightGrey = '#E0E0E0';
+const sheetBg = '#0F1518';
+const handleBlue = '#4A5A6A';
+const handleBlueDark = '#2F3B47';
+
+const loginGreen = '#1C8C37';
+const loginGreenDark = '#146227';
+const red = '#C62828';
+const redDark = '#8E1B1B';
 
 export const garageStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
     flex: {
       flex: 1,
       backgroundColor: 'transparent',
-      paddingTop: insets.top + 20,
-    },
-    scrollContent: {
-      paddingHorizontal: 20,
-      paddingBottom: insets.bottom + 100,
-      gap: 20,
-    },
-    topBar: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 20,
-      padding: 14,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    userInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    flagIcon: {
-      width: 32,
-      height: 20,
-      resizeMode: 'contain',
-    },
-    username: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: '#000',
-    },
-    coinBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    coinIcon: {
-      width: 20,
-      height: 20,
-      resizeMode: 'contain',
-    },
-    coinText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: '#000',
+      justifyContent: 'flex-end',
     },
     card: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 20,
-      padding: 24,
+      backgroundColor: sheetBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
+    },
+    dragHandleWrapper: {
+      alignItems: 'center',
+      marginTop: 10,
+      marginBottom: 20,
+    },
+    dragHandle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: handleBlue,
     },
     heading: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 18,
+      fontSize: 28,
+      color: lightGrey,
       textAlign: 'center',
+      marginBottom: 30,
+    },
+    previewSection: {
+      alignItems: 'center',
       marginBottom: 20,
-      color: '#000',
     },
     carImage: {
       width: '100%',
-      height: 200,
+      height: 180,
+      transform: [{ rotate: '90deg' }],
       resizeMode: 'contain',
     },
-    upgradeList: {
-      gap: 14,
+    upgradeSection: {
+      gap: 12,
+      marginBottom: 20,
     },
-    upgradeRowContainer: {
+    upgradeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      height: 64,
+    },
+    upgradeInfo: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
     },
-    upgradeInfoCard: {
-      flex: 1,
-      backgroundColor: 'rgba(255,255,255,0.85)',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: green,
-      paddingVertical: 12,
-      paddingHorizontal: 14,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    upgradeText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: '#000',
-      flex: 1,
-    },
-    upgradeImage: {
-      width: 60,
-      height: 40,
+    upgradeIcon: {
+      width: 32,
+      height: 32,
       resizeMode: 'contain',
-      marginLeft: 10,
     },
-    actionButton: {
-      width: 60,
-      height: 60,
-      backgroundColor: green,
-      borderRadius: 12,
+    upgradeLabel: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 16,
+      color: lightGrey,
+    },
+    priceButton: {
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      height: 44,
+      paddingHorizontal: 14,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    priceContent: {
+    coinSmall: {
+      width: 18,
+      height: 18,
+      resizeMode: 'contain',
+    },
+    priceWrap: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-    },
-    coinSmall: {
-      width: 14,
-      height: 14,
-      resizeMode: 'contain',
+      gap: 6,
     },
     priceText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 12,
-      color: '#fff',
+      fontSize: 14,
+      color: lightGrey,
     },
-    equipText: {
+    equipButton: {
+      backgroundColor: loginGreen,
+      borderWidth: 4,
+      borderColor: loginGreenDark,
+      borderRadius: 6,
+      height: 44,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    unequipButton: {
+      backgroundColor: red,
+      borderWidth: 4,
+      borderColor: redDark,
+      borderRadius: 6,
+      height: 44,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 12,
-      color: '#fff',
+      fontSize: 14,
+      color: lightGrey,
     },
-    returnButtonContainer: {
-      position: 'absolute',
-      bottom: insets.bottom + 20,
-      left: 20,
-      right: 20,
+    bottomSection: {
+      gap: 16,
     },
     returnButton: {
-      backgroundColor: green,
-      borderRadius: 12,
-      paddingVertical: 20,
+      backgroundColor: handleBlue,
+      borderWidth: 4,
+      borderColor: handleBlueDark,
+      borderRadius: 6,
       alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+      width: '100%',
     },
     returnText: {
       fontFamily: 'Silkscreen_400Regular',
-      fontSize: 20,
-      color: '#fff',
+      fontSize: 18,
+      color: lightGrey,
+    },
+
+    overlayWrap: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      justifyContent: 'flex-end',
+    },
+    overlaySheet: {
+      backgroundColor: sheetBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: insets.bottom + 20,
+      width: '100%',
+      maxHeight: '60%',
+    },
+    confirmText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    rowButtons: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 8,
+    },
+    cancelButton: {
+      flex: 1,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+    },
+    cancelButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 18,
+      color: lightGrey,
+    },
+    greenButton: {
+      flex: 1,
+      backgroundColor: loginGreen,
+      borderWidth: 4,
+      borderColor: loginGreenDark,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+    },
+    greenButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 18,
+      color: lightGrey,
+    },
+
+    toast: {
+      position: 'absolute',
+      top: insets.top + 10,
+      left: 20,
+      right: 20,
+      backgroundColor: grey,
+      borderWidth: 4,
+      borderColor: greyDark,
+      borderRadius: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    },
+    toastText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+      textAlign: 'center',
     },
   });
