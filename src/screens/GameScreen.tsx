@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, Image, Animated, Dimensions, Easing, PanResponder, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, Pressable, Image, Animated, Dimensions, Platform, KeyboardAvoidingView, Easing } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { gameStyles } from '../styles/GameStyles';
@@ -21,8 +21,9 @@ import stockWingPlate from '../assets/garage/stock-wing-plate.webp';
 import stockStripesPlate from '../assets/garage/stock-stripes-plate.webp';
 import stockWingStripesPlate from '../assets/garage/stock-wing-stripes-plate.webp';
 import coinIcon from '../assets/coin/coin.webp';
+import { Video, ResizeMode } from 'expo-av';
 
-type GameState = 'idle' | 'running' | 'paused' | 'life_lost' | 'game_over';
+type GameState = 'idle' | 'running' | 'game_over';
 type ObstacleType = 'taxi' | 'pothole';
 type Lane = 0 | 2;
 
@@ -75,18 +76,10 @@ export default function GameScreen() {
   const [stripesEquipped, setStripesEquipped] = useState(false);
   const [plateEquipped, setPlateEquipped] = useState(false);
   const [roadSpeed, setRoadSpeed] = useState(1);
-
-  const [showTopToast, setShowTopToast] = useState(false);
-  const [topToastMsg, setTopToastMsg] = useState('');
-  const topToastAnim = useRef(new Animated.Value(0)).current;
-
-  const [showResumeCountdown, setShowResumeCountdown] = useState(false);
-  const [resumeCount, setResumeCount] = useState(3);
-
   const [overlayVisible, setOverlayVisible] = useState(false);
-  const [overlayMode, setOverlayMode] = useState<'start' | 'paused' | 'game_over'>('start');
-  const overlayY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const [overlayMode, setOverlayMode] = useState<'start' | 'game_over'>('start');
 
+  const overlayY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const stateRef = useRef<GameState>('idle');
   const livesRef = useRef(3);
   const laneRef = useRef<Lane>(0);
@@ -99,10 +92,10 @@ export default function GameScreen() {
   const spawnTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const collideIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lifeLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const userUnsubRef = useRef<null | (() => void)>(null);
 
+  const lastSavePromiseRef = useRef<Promise<void> | null>(null);
   const lastSpawnAtRef = useRef(0);
   const lastSpawnLaneRef = useRef<Lane | null>(null);
   const blockCrossUntilRef = useRef(0);
@@ -111,24 +104,16 @@ export default function GameScreen() {
   const scoreFloatRef = useRef(0);
   const coinUnitsRef = useRef(0);
 
-  const lastSavePromiseRef = useRef<Promise<void> | null>(null);
-
   const localHighRef = useRef(0);
   const storageKeyRef = useRef('localHighScore:guest');
   const shownLiveHighRef = useRef(false);
 
-  const BASE_CAR_W: number = 258;
-  const BASE_CAR_H: number = 388;
-  const BASE_TAXI_W: number = 255;
-  const BASE_TAXI_H: number = 400;
-  const BASE_POT_W: number = 197;
-  const BASE_POT_H: number = 145;
-
-  const loginGreen = '#1C8C37';
-  const loginGreenDark = '#146227';
-  const grey = '#2B2B2B';
-  const greyDark = '#1A1A1A';
-  const lightGrey = '#E0E0E0';
+  const BASE_CAR_W = 258;
+  const BASE_CAR_H = 388;
+  const BASE_TAXI_W = 255;
+  const BASE_TAXI_H = 400;
+  const BASE_POT_W = 197;
+  const BASE_POT_H = 145;
 
   useEffect(() => { stateRef.current = state; }, [state]);
   useEffect(() => { livesRef.current = lives; }, [lives]);
@@ -189,16 +174,14 @@ export default function GameScreen() {
   }, [loadLocalHigh]);
 
   const computeCarSize = useCallback((w: number) => {
-    const cw = Math.max(1, w * 0.22);
+    const cw = Math.max(1, w * 0.176);
     const ratio = BASE_CAR_H / BASE_CAR_W;
     const ch = cw * ratio;
     carWRef.current = cw;
     carHRef.current = ch;
   }, []);
 
-  const carScale = useCallback(() => {
-    return carWRef.current / BASE_CAR_W;
-  }, []);
+  const carScale = useCallback(() => carWRef.current / BASE_CAR_W, []);
 
   const taxiSize = useCallback(() => {
     const s = carScale();
@@ -237,35 +220,12 @@ export default function GameScreen() {
     if (spawnTimeoutRef.current) { clearTimeout(spawnTimeoutRef.current); spawnTimeoutRef.current = null; }
     if (scoreIntervalRef.current) { clearInterval(scoreIntervalRef.current); scoreIntervalRef.current = null; }
     if (collideIntervalRef.current) { clearInterval(collideIntervalRef.current); collideIntervalRef.current = null; }
-    if (lifeLostTimerRef.current) { clearTimeout(lifeLostTimerRef.current); lifeLostTimerRef.current = null; }
     if (speedIntervalRef.current) { clearInterval(speedIntervalRef.current); speedIntervalRef.current = null; }
   }, []);
 
   const freezeAllObstacles = useCallback(() => {
     setObstaclesSafe(prev => {
       prev.forEach(o => { o.running = false; o.anim.stopAnimation(); });
-      return [...prev];
-    });
-  }, [setObstaclesSafe]);
-
-  const resumeAllObstacles = useCallback(() => {
-    setObstaclesSafe(prev => {
-      prev.forEach(o => {
-        if (o.lastY >= o.endY) return;
-        const remaining = Math.max(0, o.endY - o.lastY);
-        const duration = Math.max(1, Math.round(remaining / o.pxPerMs));
-        o.running = true;
-        Animated.timing(o.anim, {
-          toValue: o.endY,
-          duration,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }).start(({ finished }) => {
-          if (finished && stateRef.current !== 'game_over' && stateRef.current !== 'paused') {
-            setObstaclesSafe(prev2 => prev2.filter(x => x.id !== o.id));
-          }
-        });
-      });
       return [...prev];
     });
   }, [setObstaclesSafe]);
@@ -313,8 +273,8 @@ export default function GameScreen() {
       const t = taxiSize();
       w = t.w; h = t.h;
     }
-    const base = type === 'pothole' ? 2300 : 1400;
-    const duration = Math.max(type === 'pothole' ? 700 : 500, Math.round(base / s));
+    const base = type === 'pothole' ? 2800 : 1400;
+    const duration = Math.max(type === 'pothole' ? 800 : 500, Math.round(base / s));
     const startY = -h - 12;
     const endY = roadH + 80;
     const anim = new Animated.Value(startY);
@@ -326,7 +286,7 @@ export default function GameScreen() {
     ob.listenerId = listenerId;
     setObstaclesSafe(prev => [...prev, ob]);
     Animated.timing(anim, { toValue: endY, duration, easing: Easing.linear, useNativeDriver: true }).start(({ finished }) => {
-      if (finished && stateRef.current !== 'game_over' && stateRef.current !== 'paused') removeObstacle(id);
+      if (finished && stateRef.current !== 'game_over') removeObstacle(id);
     });
     lastSpawnAtRef.current = Date.now();
     lastSpawnLaneRef.current = lane;
@@ -358,24 +318,13 @@ export default function GameScreen() {
     if (type === 'taxi' && otherLaneHasEarlyObstacle(lane)) base += Math.floor(350 / s);
     const delay = base + Math.floor(jitter * rngRef.current());
     spawnTimeoutRef.current = setTimeout(() => {
-      if (stateRef.current === 'game_over' || stateRef.current === 'paused') return;
+      if (stateRef.current === 'game_over') return;
       const l = chooseLane();
       const preventWall = otherLaneHasEarlyObstacle(l);
       if (preventWall) spawnObstacle(l, 'pothole'); else spawnObstacle(l, type);
       scheduleNextSpawn();
     }, delay);
   }, [chooseLane, otherLaneHasEarlyObstacle, spawnObstacle]);
-
-  const showTopToastNow = useCallback((msg: string) => {
-    setTopToastMsg(msg);
-    setShowTopToast(true);
-    topToastAnim.setValue(0);
-    Animated.sequence([
-      Animated.timing(topToastAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-      Animated.delay(2000),
-      Animated.timing(topToastAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
-    ]).start(() => setShowTopToast(false));
-  }, [topToastAnim]);
 
   const beginScoreTicker = useCallback(() => {
     scoreFloatRef.current = 0;
@@ -389,12 +338,11 @@ export default function GameScreen() {
       setScore(nextScore);
       if (!shownLiveHighRef.current && nextScore > localHighRef.current) {
         shownLiveHighRef.current = true;
-        showTopToastNow('NEW HIGH SCORE!');
       }
       coinUnitsRef.current += 1;
       setRoundCoins(Math.floor(coinUnitsRef.current / 5));
     }, 200);
-  }, [showTopToastNow]);
+  }, []);
 
   const startSpeedRamp = useCallback(() => {
     speedRef.current = 1;
@@ -455,21 +403,13 @@ export default function GameScreen() {
           removeObstacle(hit.id);
           if (nextLives <= 0) {
             handleGameOver();
-          } else {
-            setState('life_lost');
-            stateRef.current = 'life_lost';
-            if (lifeLostTimerRef.current) clearTimeout(lifeLostTimerRef.current);
-            lifeLostTimerRef.current = setTimeout(() => {
-              setState('running');
-              stateRef.current = 'running';
-            }, 600);
           }
         }
       }
     }, 50);
   }, [carY, laneX, handleGameOver, removeObstacle]);
 
-  const openOverlay = useCallback((mode: 'start' | 'paused' | 'game_over') => {
+  const openOverlay = useCallback((mode: 'start' | 'game_over') => {
     setOverlayMode(mode);
     setOverlayVisible(true);
     overlayY.setValue(Dimensions.get('window').height);
@@ -502,40 +442,6 @@ export default function GameScreen() {
     startSpeedRamp();
     startCollisionLoop();
   }, [roadW, roadH, clearTimers, spawnObstacle, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop, setObstaclesSafe]);
-
-  const pauseRun = useCallback(() => {
-    if (stateRef.current !== 'running') return;
-    clearTimers();
-    freezeAllObstacles();
-    setState('paused');
-    stateRef.current = 'paused';
-    openOverlay('paused');
-  }, [clearTimers, freezeAllObstacles, openOverlay]);
-
-  const resumeRun = useCallback(() => {
-    closeOverlay(() => {
-      if (stateRef.current !== 'paused') return;
-      setShowResumeCountdown(true);
-      setResumeCount(3);
-      let count = 3;
-      const t = setInterval(() => {
-        count -= 1;
-        if (count <= 0) {
-          clearInterval(t);
-          setShowResumeCountdown(false);
-          setState('running');
-          stateRef.current = 'running';
-          resumeAllObstacles();
-          scheduleNextSpawn();
-          beginScoreTicker();
-          startSpeedRamp();
-          startCollisionLoop();
-        } else {
-          setResumeCount(count);
-        }
-      }, 600);
-    });
-  }, [closeOverlay, resumeAllObstacles, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop]);
 
   const restartToIdle = useCallback(() => {
     clearTimers();
@@ -573,26 +479,6 @@ export default function GameScreen() {
     };
   }, [clearTimers, setObstaclesSafe]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => g.dy > 10,
-      onPanResponderMove: (_, g) => {
-        if (g.dy > 0) overlayY.setValue(g.dy);
-      },
-      onPanResponderRelease: (_, g) => {
-        if (g.dy > 100) {
-          closeOverlay(() => {
-            if (overlayMode === 'paused') {
-              resumeRun();
-            }
-          });
-        } else {
-          Animated.spring(overlayY, { toValue: 0, useNativeDriver: true }).start();
-        }
-      },
-    })
-  ).current;
-
   useEffect(() => {
     if (!fontsLoaded) return;
     if (stateRef.current === 'idle') {
@@ -611,12 +497,12 @@ export default function GameScreen() {
     return stock;
   }, [wingEquipped, stripesEquipped, plateEquipped]);
 
-  if (!fontsLoaded) return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
+  if (!fontsLoaded) return <View style={g.blank} />;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={m.flex}>
       <View style={m.topRow}>
-        <View style={{ position: 'relative' }}>
+        <View style={g.relativeBox}>
           <View style={m.infoCard}>
             <Text style={m.infoText}>BEST: {highScore}</Text>
           </View>
@@ -626,27 +512,6 @@ export default function GameScreen() {
           <Text style={m.infoText}>{coinBalance}</Text>
         </View>
       </View>
-
-      {showTopToast && (
-        <Animated.View
-          style={[
-            m.loginToast,
-            {
-              opacity: topToastAnim,
-              transform: [
-                {
-                  translateY: topToastAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-20, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <Text style={m.loginToastText}>{topToastMsg}</Text>
-        </Animated.View>
-      )}
 
       <View style={g.card}>
         <Pressable
@@ -661,142 +526,84 @@ export default function GameScreen() {
         >
           <ScrollingRoad paused={state !== 'running'} speed={roadSpeed} heightPx={roadH} />
 
-          <View style={{ position: 'absolute', top: 10, left: 10, right: 10, zIndex: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              {Array.from({ length: 3 }).map((_, i) => (
-                <View key={i} style={[g.heart, { opacity: i < lives ? 1 : 0.2 }]} />
-              ))}
+          <View style={g.hudInside}>
+            <View style={g.hudRow}>
+              <View style={g.heartsRow}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <View key={i} style={[g.heart, i < lives ? g.heartOn : g.heartOff]} />
+                ))}
+              </View>
+              <View style={g.hudChipsRight}>
+                <View style={g.hudChip}>
+                  <Text style={g.hudChipText}>{score}</Text>
+                </View>
+                <View style={g.hudChipRow}>
+                  <Image source={coinIcon} style={g.hudCoinIcon} />
+                  <Text style={g.hudChipText}>+{roundCoins}</Text>
+                </View>
+              </View>
             </View>
-            <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: lightGrey }}>{score}</Text>
           </View>
 
           {obstacles.map((o) => (
             <Animated.View
               key={o.id}
-              style={{
-                position: 'absolute',
-                left: laneX(o.lane),
-                top: 0,
-                width: o.w,
-                height: o.h,
-                backgroundColor: 'transparent',
-                transform: [{ translateY: o.anim }],
-                zIndex: 2,
-              }}
+              style={[
+                g.obstacle,
+                {
+                  left: laneX(o.lane),
+                  width: o.w,
+                  height: o.h,
+                  transform: [{ translateY: o.anim }],
+                },
+              ]}
             >
-              <Image source={o.type === 'taxi' ? taxiImg : potholeImg} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <Image source={o.type === 'taxi' ? taxiImg : potholeImg} style={g.full} resizeMode="contain" />
             </Animated.View>
           ))}
 
           <View
-            style={{
-              position: 'absolute',
-              left: laneX(playerLane),
-              top: carY(),
-              width: carWRef.current,
-              height: carHRef.current,
-              backgroundColor: 'transparent',
-              zIndex: 3,
-            }}
+            style={[
+              g.car,
+              {
+                left: laneX(playerLane),
+                top: carY(),
+                width: carWRef.current,
+                height: carHRef.current,
+              },
+            ]}
           >
-            <Image source={carImage} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            <Image source={carImage} style={g.full} resizeMode="contain" />
           </View>
-
-          {showResumeCountdown && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#00000066',
-                zIndex: 5,
-              }}
-            >
-              <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 56, color: lightGrey }}>{resumeCount}</Text>
-            </View>
-          )}
-
-          <Pressable
-            onPress={pauseRun}
-            disabled={state !== 'running'}
-            style={{
-              position: 'absolute',
-              right: 14,
-              bottom: 14,
-              width: 44,
-              height: 44,
-              backgroundColor: state === 'running' ? '#4A5A6A' : '#2F3B47',
-              borderWidth: 4,
-              borderColor: '#2F3B47',
-              borderRadius: 6,
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 6,
-            }}
-          >
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <View style={{ width: 6, height: 18, backgroundColor: lightGrey }} />
-              <View style={{ width: 6, height: 18, backgroundColor: lightGrey }} />
-            </View>
-          </Pressable>
         </Pressable>
       </View>
 
       {overlayVisible && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end' }}>
-          <Animated.View style={[{ backgroundColor: '#0F1518', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingBottom: insets.bottom + 20, paddingTop: 10, width: '100%', transform: [{ translateY: overlayY }] }]} {...panResponder.panHandlers}>
-            <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 20 }}>
-              <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: '#4A5A6A' }} />
-            </View>
-
+        <View style={g.overlayWrap}>
+          <Animated.View style={[g.overlayCard, { transform: [{ translateY: overlayY }] }]}>
             {overlayMode === 'start' && (
               <>
-                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 28, color: lightGrey, textAlign: 'center', marginBottom: 30 }}>START GAME</Text>
-                <View style={{ gap: 16 }}>
-                  <Pressable
-                    onPress={() => closeOverlay(startRun)}
-                    style={{ backgroundColor: loginGreen, borderWidth: 4, borderColor: loginGreenDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56, width: '100%' }}
-                  >
-                    <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>START</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={resetToMenu}
-                    style={{ backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56, width: '100%' }}
-                  >
-                    <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>MENU</Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
-
-            {overlayMode === 'paused' && (
-              <>
-                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 28, color: lightGrey, textAlign: 'center', marginBottom: 30 }}>PAUSED</Text>
-                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: lightGrey, textAlign: 'center', marginBottom: 20 }}>Score {score} • Coins +{roundCoins}</Text>
-                <View style={{ gap: 16 }}>
-                  <View style={{ flexDirection: 'row', gap: 16 }}>
-                    <Pressable
-                      onPress={() => closeOverlay(restartToIdle)}
-                      style={{ flex: 1, backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
-                    >
-                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>RESTART</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={resumeRun}
-                      style={{ flex: 1, backgroundColor: loginGreen, borderWidth: 4, borderColor: loginGreenDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
-                    >
-                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>RESUME</Text>
-                    </Pressable>
+                <Text style={g.overlayTitle}>START GAME</Text>
+                <View style={g.overlaySectionWrap}>
+                  <View style={g.overlayInfoCard}>
+                    <Text style={g.overlayInfoText}>Hold down to change lanes</Text>
+                    <View style={g.tutorialBox}>
+                      <Video
+                        source={require('../assets/game/hold.mp4')}
+                        style={g.full}
+                        isLooping
+                        shouldPlay
+                        resizeMode={ResizeMode.COVER}
+                      />
+                    </View>
                   </View>
-                  <Pressable
-                    onPress={resetToMenu}
-                    style={{ backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56, width: '100%' }}
-                  >
-                    <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>MENU</Text>
+                </View>
+                <View style={g.btnCol}>
+                  <Pressable onPress={() => closeOverlay(startRun)} style={g.btnGreen}>
+                    <Text style={g.btnText}>START</Text>
+                  </Pressable>
+                  <Pressable onPress={resetToMenu} style={g.btnGrey}>
+                    <Text style={g.btnText}>MENU</Text>
                   </Pressable>
                 </View>
               </>
@@ -804,22 +611,27 @@ export default function GameScreen() {
 
             {overlayMode === 'game_over' && (
               <>
-                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 28, color: lightGrey, textAlign: 'center', marginBottom: 30 }}>GAME OVER</Text>
-                {beatHigh ? <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: '#FFD54F', textAlign: 'center', marginBottom: 10 }}>HIGH SCORE!</Text> : null}
-                <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 16, color: lightGrey, textAlign: 'center', marginBottom: 20 }}>Score {score} • Coins +{roundCoins}</Text>
-                <View style={{ gap: 16 }}>
-                  <View style={{ flexDirection: 'row', gap: 16 }}>
-                    <Pressable
-                      onPress={resetToMenu}
-                      style={{ flex: 1, backgroundColor: grey, borderWidth: 4, borderColor: greyDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
-                    >
-                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>MENU</Text>
+                <Text style={g.overlayTitle}>GAME OVER</Text>
+                {beatHigh ? <Text style={g.overlayHigh}>HIGH SCORE!</Text> : null}
+                <View style={g.endRow}>
+                  <View style={g.infoPill}>
+                    <Text style={g.infoPillText}>Score {score}</Text>
+                  </View>
+                  <View style={g.infoPillRow}>
+                    <Image source={coinIcon} style={g.pillCoin} />
+                    <Text style={g.infoPillText}>+{roundCoins}</Text>
+                  </View>
+                </View>
+                <View style={g.btnCol}>
+                  <View style={g.btnRow}>
+                    <Pressable onPress={resetToMenu} style={g.btnGreyFlex}>
+                      <Text style={g.btnText}>MENU</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => closeOverlay(() => { setBeatHigh(false); restartToIdle(); })}
-                      style={{ flex: 1, backgroundColor: loginGreen, borderWidth: 4, borderColor: loginGreenDark, borderRadius: 6, alignItems: 'center', justifyContent: 'center', height: 56 }}
+                      style={g.btnGreenFlex}
                     >
-                      <Text style={{ fontFamily: 'Silkscreen_400Regular', fontSize: 18, color: lightGrey }}>RESTART</Text>
+                      <Text style={g.btnText}>RESTART</Text>
                     </Pressable>
                   </View>
                 </View>

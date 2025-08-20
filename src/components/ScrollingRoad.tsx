@@ -1,72 +1,69 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Image as RNImage, Image, Easing, View, StyleSheet } from 'react-native';
+import { Animated, Image as RNImage, Image, View, StyleSheet } from 'react-native';
 
 const roadSource = RNImage.resolveAssetSource(require('../assets/game/road.webp'));
 const AnimatedImage = Animated.createAnimatedComponent(RNImage);
 
 type Props = {
   paused: boolean;
-  speed: number;        // 1..3 from your game
-  heightPx: number;     // pass the measured roadH
+  speed: number;
+  heightPx: number;
+  widthPx?: number;
 };
 
-export default function ScrollingRoad({ paused, speed, heightPx }: Props) {
+export default function ScrollingRoad({ paused, speed, heightPx, widthPx = 0 }: Props) {
   const H = Math.max(1, Math.floor(heightPx || 1));
+  const W = Math.max(0, Math.floor(widthPx || 0));
   const translateY = useRef(new Animated.Value(0)).current;
-  const lastYRef = useRef(0);
-  const animRef = useRef<Animated.CompositeAnimation | null>(null);
-  const pausedRef = useRef(paused);
-  const speedRef = useRef(speed);
+  const rafRef = useRef<number | null>(null);
+  const lastTsRef = useRef<number | null>(null);
+  const offsetRef = useRef(0);
+  const playingRef = useRef(false);
+  const ppsRef = useRef(120);
   const heightRef = useRef(H);
 
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
-  useEffect(() => { speedRef.current = speed; }, [speed]);
-  useEffect(() => { heightRef.current = H; }, [H]);
-
-  useEffect(() => {
-    const id = translateY.addListener(({ value }) => { lastYRef.current = value; });
-    return () => translateY.removeListener(id);
-  }, [translateY]);
-
-  const stopAnim = () => {
-    if (animRef.current) {
-      animRef.current.stop();
-      animRef.current = null;
-    }
+  const recompute = () => {
+    const s = Math.max(1, Math.min(3, speed || 1));
+    const carScale = W > 0 ? (W * 0.22) / 258 : 0;
+    const potholeH = 145 * carScale;
+    const totalDist = H + 92 + potholeH;
+    const durationMs = Math.max(700, Math.round(2300 / s));
+    ppsRef.current = (totalDist / durationMs) * 0.84;
   };
 
-  const runSegment = () => {
-    const cur = lastYRef.current % heightRef.current;
-    translateY.setValue(cur);
-    const baseCycleMs = 2200;                  // your original baseline
-    const s = Math.max(0.2, speedRef.current); // guard
-    const duration = Math.max(300, Math.floor(baseCycleMs / s));
-    const target = cur + heightRef.current;
+  useEffect(() => {
+    heightRef.current = H;
+    translateY.setValue(offsetRef.current % H);
+    recompute();
+  }, [H]);
 
-    const anim = Animated.timing(translateY, {
-      toValue: target,
-      duration,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    });
+  useEffect(() => {
+    recompute();
+  }, [W, speed]);
 
-    animRef.current = anim;
-    anim.start(({ finished }) => {
-      if (finished && !pausedRef.current) {
-        // Snap back within range to avoid growing numbers and continue
-        translateY.setValue(lastYRef.current % heightRef.current);
-        runSegment();
+  useEffect(() => {
+    playingRef.current = !paused && H > 0;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    lastTsRef.current = null;
+    const cb = (ts: number) => {
+      if (!playingRef.current) {
+        lastTsRef.current = ts;
+      } else {
+        const last = lastTsRef.current ?? ts;
+        const dt = ts - last;
+        lastTsRef.current = ts;
+        const dy = dt * ppsRef.current;
+        offsetRef.current = (offsetRef.current + dy) % heightRef.current;
+        translateY.setValue(offsetRef.current);
       }
-    });
-  };
-
-  useEffect(() => {
-    stopAnim();
-    if (!pausedRef.current && heightRef.current > 0) {
-      runSegment();
-    }
-    return stopAnim;
-  }, [paused, H, speed]); // any change restarts from the same offset with new timing
+      rafRef.current = requestAnimationFrame(cb);
+    };
+    rafRef.current = requestAnimationFrame(cb);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [paused, H]);
 
   if (!heightPx) return null;
 
@@ -76,17 +73,24 @@ export default function ScrollingRoad({ paused, speed, heightPx }: Props) {
       <AnimatedImage
         source={roadSource}
         resizeMode="cover"
-        style={{ position: 'absolute', width: '100%', height: H, top: 0, transform: [{ translateY }] }}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: H,
+          top: 0,
+          transform: [{ translateY }],
+        }}
       />
       <AnimatedImage
         source={roadSource}
         resizeMode="cover"
-        style={{ position: 'absolute', width: '100%', height: H, top: -H, transform: [{ translateY }] }}
-      />
-      <AnimatedImage
-        source={roadSource}
-        resizeMode="cover"
-        style={{ position: 'absolute', width: '100%', height: H, top: -2 * H, transform: [{ translateY }] }}
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: H,
+          top: -H,
+          transform: [{ translateY }],
+        }}
       />
     </View>
   );
