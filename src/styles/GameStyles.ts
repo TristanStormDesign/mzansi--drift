@@ -50,23 +50,30 @@ export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    heartsRow: {
+    hudHeartsChip: {
+      backgroundColor: chipBg,
+      borderWidth: 4,
+      borderColor: chipBorder,
+      borderRadius: 8,
+      paddingHorizontal: 10,
+      height: 32,
+      justifyContent: 'center',
+      minWidth: 80,
+    },
+    hudHeartsInner: {
       flexDirection: 'row',
+      alignItems: 'center',
       gap: 6,
     },
-    heart: {
-      width: 14,
-      height: 14,
-      borderWidth: 4,
-      borderRadius: 4,
-      borderColor: redDark,
-      backgroundColor: red,
+    heartIcon: {
+      width: 16,
+      height: 16,
     },
     heartOn: {
       opacity: 1,
     },
     heartOff: {
-      opacity: 0.2,
+      opacity: 0.25,
     },
     hudChipsRight: {
       flexDirection: 'row',
@@ -169,11 +176,37 @@ export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       textAlign: 'center',
     },
     tutorialBox: {
-      width: 120,
+      width: 80,
       height: 80,
       borderRadius: 6,
       overflow: 'hidden',
       alignSelf: 'center',
+    },
+
+    miniRow: {
+      flexDirection: 'row',
+      gap: 12,
+      justifyContent: 'center',
+    },
+    miniCard: {
+      backgroundColor: chipBg,
+      borderWidth: 4,
+      borderColor: chipBorder,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      minWidth: 120,
+      gap: 6,
+    },
+    miniImg: {
+      width: 28,
+      height: 28,
+    },
+    miniText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 12,
+      color: lightGrey,
     },
 
     btnCol: {

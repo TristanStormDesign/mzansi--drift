@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScrollingRoad from '../components/ScrollingRoad';
 import taxiImg from '../assets/game/taxi.webp';
 import potholeImg from '../assets/game/pothole.webp';
+import heartImg from '../assets/game/heart.webp';
 import stock from '../assets/garage/stock.webp';
 import stockWing from '../assets/garage/stock-wing.webp';
 import stockStripes from '../assets/garage/stock-stripes.webp';
@@ -21,7 +22,7 @@ import stockWingPlate from '../assets/garage/stock-wing-plate.webp';
 import stockStripesPlate from '../assets/garage/stock-stripes-plate.webp';
 import stockWingStripesPlate from '../assets/garage/stock-wing-stripes-plate.webp';
 import coinIcon from '../assets/coin/coin.webp';
-import { Video, ResizeMode } from 'expo-av';
+import { Audio, Video, ResizeMode, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 
 type GameState = 'idle' | 'running' | 'game_over';
 type ObstacleType = 'taxi' | 'pothole';
@@ -93,6 +94,7 @@ export default function GameScreen() {
   const scoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const collideIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const speedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userUnsubRef = useRef<null | (() => void)>(null);
 
   const lastSavePromiseRef = useRef<Promise<void> | null>(null);
@@ -107,6 +109,16 @@ export default function GameScreen() {
   const localHighRef = useRef(0);
   const storageKeyRef = useRef('localHighScore:guest');
   const shownLiveHighRef = useRef(false);
+
+  const potholeHitsRef = useRef(0);
+
+  const musicRef = useRef<Audio.Sound | null>(null);
+  const carRef = useRef<Audio.Sound | null>(null);
+  const potholeRefs = useRef<Audio.Sound[]>([]);
+  const crashRef = useRef<Audio.Sound | null>(null);
+  const hootRef = useRef<Audio.Sound | null>(null);
+  const musicVolRef = useRef(0.06);
+  const sfxVolRef = useRef(0.45);
 
   const BASE_CAR_W = 258;
   const BASE_CAR_H = 388;
@@ -221,6 +233,7 @@ export default function GameScreen() {
     if (scoreIntervalRef.current) { clearInterval(scoreIntervalRef.current); scoreIntervalRef.current = null; }
     if (collideIntervalRef.current) { clearInterval(collideIntervalRef.current); collideIntervalRef.current = null; }
     if (speedIntervalRef.current) { clearInterval(speedIntervalRef.current); speedIntervalRef.current = null; }
+    if (hootTimeoutRef.current) { clearTimeout(hootTimeoutRef.current); hootTimeoutRef.current = null; }
   }, []);
 
   const freezeAllObstacles = useCallback(() => {
@@ -359,6 +372,28 @@ export default function GameScreen() {
   const rectsOverlap = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
+  const playPotholeSfx = useCallback(() => {
+    const idx = Math.min(potholeHitsRef.current, 3) - 1;
+    const s = potholeRefs.current[idx];
+    if (s) s.replayAsync();
+  }, []);
+
+  const stopLoopingAudio = useCallback(async () => {
+    try { if (carRef.current) await carRef.current.stopAsync(); } catch {}
+    try { if (musicRef.current) await musicRef.current.stopAsync(); } catch {}
+  }, []);
+
+  const scheduleHoot = useCallback(() => {
+    if (hootTimeoutRef.current) clearTimeout(hootTimeoutRef.current);
+    if (stateRef.current !== 'running') return;
+    const delay = 3000 + Math.floor(rngRef.current() * 7000);
+    hootTimeoutRef.current = setTimeout(async () => {
+      if (stateRef.current !== 'running') return;
+      try { if (hootRef.current) { await hootRef.current.setVolumeAsync(sfxVolRef.current * 0.6); await hootRef.current.replayAsync(); } } catch {}
+      scheduleHoot();
+    }, delay);
+  }, []);
+
   const handleGameOver = useCallback(() => {
     freezeAllObstacles();
     clearTimers();
@@ -379,8 +414,9 @@ export default function GameScreen() {
     setState('game_over');
     stateRef.current = 'game_over';
     lastSavePromiseRef.current = persistResultsRefFn.current(final, earned);
+    stopLoopingAudio();
     openOverlay('game_over');
-  }, [freezeAllObstacles, clearTimers]);
+  }, [freezeAllObstacles, clearTimers, stopLoopingAudio]);
 
   const startCollisionLoop = useCallback(() => {
     collideIntervalRef.current = setInterval(() => {
@@ -396,8 +432,11 @@ export default function GameScreen() {
       }
       if (hit) {
         if (hit.type === 'taxi') {
+          try { if (crashRef.current) crashRef.current.replayAsync(); } catch {}
           handleGameOver();
         } else {
+          potholeHitsRef.current += 1;
+          playPotholeSfx();
           const nextLives = Math.max(0, livesRef.current - 1);
           setLives(nextLives);
           removeObstacle(hit.id);
@@ -407,7 +446,7 @@ export default function GameScreen() {
         }
       }
     }, 50);
-  }, [carY, laneX, handleGameOver, removeObstacle]);
+  }, [carY, laneX, handleGameOver, removeObstacle, playPotholeSfx]);
 
   const openOverlay = useCallback((mode: 'start' | 'game_over') => {
     setOverlayMode(mode);
@@ -430,6 +469,7 @@ export default function GameScreen() {
     setLives(3);
     setScore(0);
     setRoundCoins(0);
+    potholeHitsRef.current = 0;
     scoreFloatRef.current = 0;
     coinUnitsRef.current = 0;
     setPlayerLane(0);
@@ -441,7 +481,8 @@ export default function GameScreen() {
     beginScoreTicker();
     startSpeedRamp();
     startCollisionLoop();
-  }, [roadW, roadH, clearTimers, spawnObstacle, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop, setObstaclesSafe]);
+    scheduleHoot();
+  }, [roadW, roadH, clearTimers, spawnObstacle, scheduleNextSpawn, beginScoreTicker, startSpeedRamp, startCollisionLoop, setObstaclesSafe, scheduleHoot]);
 
   const restartToIdle = useCallback(() => {
     clearTimers();
@@ -450,6 +491,7 @@ export default function GameScreen() {
     setLives(3);
     setScore(0);
     setRoundCoins(0);
+    potholeHitsRef.current = 0;
     scoreFloatRef.current = 0;
     coinUnitsRef.current = 0;
     speedRef.current = 1;
@@ -459,15 +501,17 @@ export default function GameScreen() {
     stateRef.current = 'idle';
     setBeatHigh(false);
     shownLiveHighRef.current = false;
+    stopLoopingAudio();
     openOverlay('start');
-  }, [clearTimers, freezeAllObstacles, setObstaclesSafe, openOverlay]);
+  }, [clearTimers, freezeAllObstacles, setObstaclesSafe, openOverlay, stopLoopingAudio]);
 
   const resetToMenu = useCallback(async () => {
     try { if (lastSavePromiseRef.current) await lastSavePromiseRef.current; } catch {}
     clearTimers();
+    stopLoopingAudio();
     if (userUnsubRef.current) userUnsubRef.current();
     (navigation as any).reset({ index: 0, routes: [{ name: 'Menu' }] });
-  }, [clearTimers, navigation]);
+  }, [clearTimers, navigation, stopLoopingAudio]);
 
   useEffect(() => {
     return () => {
@@ -485,6 +529,95 @@ export default function GameScreen() {
       openOverlay('start');
     }
   }, [fontsLoaded, openOverlay]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+        });
+      } catch {}
+      try {
+        const mv = await AsyncStorage.getItem('musicVolume');
+        const sv = await AsyncStorage.getItem('sfxVolume');
+        if (mv != null) {
+          const n = Number(mv);
+          if (!Number.isNaN(n)) musicVolRef.current = Math.max(0, Math.min(1, n));
+        }
+        if (sv != null) {
+          const n = Number(sv);
+          if (!Number.isNaN(n)) sfxVolRef.current = Math.max(0, Math.min(1, n));
+        }
+      } catch {}
+      try {
+        const music = new Audio.Sound();
+        await music.loadAsync(require('../assets/game/game-music.mp3'));
+        await music.setIsLoopingAsync(true);
+        await music.setVolumeAsync(musicVolRef.current);
+        musicRef.current = music;
+      } catch {}
+      try {
+        const car = new Audio.Sound();
+        await car.loadAsync(require('../assets/game/car.mp3'));
+        await car.setIsLoopingAsync(true);
+        await car.setVolumeAsync(sfxVolRef.current * 0.35);
+        carRef.current = car;
+      } catch {}
+      try {
+        const p1 = new Audio.Sound();
+        await p1.loadAsync(require('../assets/game/pothole-1.mp3'));
+        await p1.setVolumeAsync(sfxVolRef.current);
+        const p2 = new Audio.Sound();
+        await p2.loadAsync(require('../assets/game/pothole-2.mp3'));
+        await p2.setVolumeAsync(sfxVolRef.current);
+        const p3 = new Audio.Sound();
+        await p3.loadAsync(require('../assets/game/pothole-3.mp3'));
+        await p3.setVolumeAsync(sfxVolRef.current);
+        potholeRefs.current = [p1, p2, p3];
+      } catch {}
+      try {
+        const crash = new Audio.Sound();
+        await crash.loadAsync(require('../assets/game/crash.mp3'));
+        await crash.setVolumeAsync(sfxVolRef.current);
+        crashRef.current = crash;
+      } catch {}
+      try {
+        const hoot = new Audio.Sound();
+        await hoot.loadAsync(require('../assets/game/hoot.mp3'));
+        await hoot.setVolumeAsync(sfxVolRef.current * 0.6);
+        hootRef.current = hoot;
+      } catch {}
+    })();
+    return () => {
+      (async () => {
+        try { if (carRef.current) { await carRef.current.stopAsync(); await carRef.current.unloadAsync(); carRef.current = null; } } catch {}
+        try { if (musicRef.current) { await musicRef.current.stopAsync(); await musicRef.current.unloadAsync(); musicRef.current = null; } } catch {}
+        for (const s of potholeRefs.current) {
+          try { await s.unloadAsync(); } catch {}
+        }
+        potholeRefs.current = [];
+        try { if (crashRef.current) { await crashRef.current.unloadAsync(); crashRef.current = null; } } catch {}
+        try { if (hootRef.current) { await hootRef.current.unloadAsync(); hootRef.current = null; } } catch {}
+      })();
+    };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (state === 'running') {
+        try { if (musicRef.current) { await musicRef.current.setVolumeAsync(musicVolRef.current); await musicRef.current.replayAsync(); } } catch {}
+        try { if (carRef.current) { await carRef.current.setVolumeAsync(sfxVolRef.current * 0.35); await carRef.current.replayAsync(); } } catch {}
+      } else {
+        try { if (carRef.current) await carRef.current.stopAsync(); } catch {}
+        try { if (musicRef.current) await musicRef.current.stopAsync(); } catch {}
+      }
+    })();
+  }, [state]);
 
   const carImage = useMemo(() => {
     if (wingEquipped && stripesEquipped && plateEquipped) return stockWingStripesPlate;
@@ -528,10 +661,12 @@ export default function GameScreen() {
 
           <View style={g.hudInside}>
             <View style={g.hudRow}>
-              <View style={g.heartsRow}>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <View key={i} style={[g.heart, i < lives ? g.heartOn : g.heartOff]} />
-                ))}
+              <View style={g.hudHeartsChip}>
+                <View style={g.hudHeartsInner}>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Image key={i} source={heartImg} style={[g.heartIcon, i < lives ? g.heartOn : g.heartOff]} />
+                  ))}
+                </View>
               </View>
               <View style={g.hudChipsRight}>
                 <View style={g.hudChip}>
@@ -597,6 +732,16 @@ export default function GameScreen() {
                       />
                     </View>
                   </View>
+                  <View style={g.miniRow}>
+                    <View style={g.miniCard}>
+                      <Image source={potholeImg} style={g.miniImg} resizeMode="contain" />
+                      <Text style={g.miniText}>Avoid potholes</Text>
+                    </View>
+                    <View style={g.miniCard}>
+                      <Image source={taxiImg} style={g.miniImg} resizeMode="contain" />
+                      <Text style={g.miniText}>Avoid taxis</Text>
+                    </View>
+                  </View>
                 </View>
                 <View style={g.btnCol}>
                   <Pressable onPress={() => closeOverlay(startRun)} style={g.btnGreen}>
@@ -643,3 +788,4 @@ export default function GameScreen() {
     </KeyboardAvoidingView>
   );
 }
+  

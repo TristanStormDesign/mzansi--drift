@@ -12,6 +12,7 @@ import GarageScreen from './src/screens/GarageScreen';
 import RankingsScreen from './src/screens/RankingsScreen';
 import GameScreen from './src/screens/GameScreen';
 import MultiplayerScreen from './src/screens/MultiplayerScreen';
+import MultiplayerGameScreen from './src/screens/MultiplayerGameScreen';
 
 const Stack = createStackNavigator();
 
@@ -127,7 +128,28 @@ export default function App() {
           />
 
           <Stack.Screen name="Game" component={GameScreen} />
-          <Stack.Screen name="Multiplayer" component={MultiplayerScreen} />
+
+          <Stack.Screen
+            name="Multiplayer"
+            component={MultiplayerScreen}
+            options={{
+              presentation: 'transparentModal',
+              cardStyleInterpolator: ({ current }) => ({
+                cardStyle: {
+                  transform: [
+                    {
+                      translateY: current.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [800, 0],
+                      }),
+                    },
+                  ],
+                },
+              }),
+            }}
+          />
+
+          <Stack.Screen name="MultiplayerGame" component={MultiplayerGameScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </>
