@@ -29,7 +29,6 @@ import * as FileSystem from 'expo-file-system';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
-
 type GameState = 'idle' | 'running' | 'game_over';
 type ObstacleType = 'taxi' | 'pothole';
 type Lane = 0 | 2;
