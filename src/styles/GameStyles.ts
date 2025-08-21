@@ -7,8 +7,6 @@ const lightGrey = '#E0E0E0';
 const cardBg = '#0F1518';
 const chipBg = '#0B1114';
 const chipBorder = '#2F3B47';
-const red = '#C62828';
-const redDark = '#8E1B1B';
 const loginGreen = '#1C8C37';
 const loginGreenDark = '#146227';
 
@@ -305,5 +303,25 @@ export const gameStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
     pillCoin: {
       width: 18,
       height: 18,
+    },
+
+    toastWrap: {
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      bottom: insets.bottom + 28,
+      alignItems: 'center',
+    },
+    toastText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+      backgroundColor: chipBg,
+      borderWidth: 4,
+      borderColor: chipBorder,
+      borderRadius: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      textAlign: 'center',
     },
   });
