@@ -219,14 +219,14 @@ export default function MenuScreen() {
             style={[styles.pixelButtonOuterGrey, !isLoggedIn && styles.startButtonDisabled]}
             onPress={() => {
               if (isLoggedIn) {
-                navigation.navigate('Multiplayer' as never);
+                navigation.navigate('Friends' as never);
               } else {
-                triggerToast('Please Login to play Multiplayer');
+                triggerToast('Please login to use Friends');
               }
             }}
           >
             <View style={styles.pixelButtonInnerGrey}>
-              <Text style={styles.startButtonTextSmall}>MULTIPLAYER</Text>
+              <Text style={styles.startButtonTextSmall}>FRIENDS</Text>
             </View>
           </TouchableOpacity>
         </View>

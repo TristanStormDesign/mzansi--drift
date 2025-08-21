@@ -11,8 +11,7 @@ import AccountScreen from './src/screens/AccountScreen';
 import GarageScreen from './src/screens/GarageScreen';
 import RankingsScreen from './src/screens/RankingsScreen';
 import GameScreen from './src/screens/GameScreen';
-import MultiplayerScreen from './src/screens/MultiplayerScreen';
-import MultiplayerGameScreen from './src/screens/MultiplayerGameScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 
 const Stack = createStackNavigator();
 
@@ -46,7 +45,6 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
           <Stack.Screen name="Menu" component={MenuScreen} />
-
           <Stack.Screen
             name="Settings"
             component={SettingsScreen}
@@ -66,7 +64,6 @@ export default function App() {
               }),
             }}
           />
-
           <Stack.Screen
             name="Account"
             component={AccountScreen}
@@ -86,7 +83,6 @@ export default function App() {
               }),
             }}
           />
-
           <Stack.Screen
             name="Garage"
             component={GarageScreen}
@@ -106,7 +102,6 @@ export default function App() {
               }),
             }}
           />
-
           <Stack.Screen
             name="Rankings"
             component={RankingsScreen}
@@ -126,30 +121,8 @@ export default function App() {
               }),
             }}
           />
-
           <Stack.Screen name="Game" component={GameScreen} />
-
-          <Stack.Screen
-            name="Multiplayer"
-            component={MultiplayerScreen}
-            options={{
-              presentation: 'transparentModal',
-              cardStyleInterpolator: ({ current }) => ({
-                cardStyle: {
-                  transform: [
-                    {
-                      translateY: current.progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [800, 0],
-                      }),
-                    },
-                  ],
-                },
-              }),
-            }}
-          />
-
-          <Stack.Screen name="MultiplayerGame" component={MultiplayerGameScreen} />
+          <Stack.Screen name="Friends" component={FriendsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </>

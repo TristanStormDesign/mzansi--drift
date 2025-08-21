@@ -6,6 +6,5 @@ export type RootStackParamList = {
   Garage: undefined;
   Rankings: undefined;
   Game: undefined;
-  Multiplayer: undefined;
-  MultiplayerGame: { roomId: string };
+  Friends: undefined;
 };
