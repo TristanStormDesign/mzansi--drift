@@ -1,6 +1,6 @@
 # ![Mzansi Drift Logo](./readme/logo.png)
 
-# 🎮 Mzansi Drift 🚖🇿🇦
+# 🎮 Mzansi Drift 🚖
 
 **Mzansi Drift** is a retro-styled **16-bit racing game** built with **React Native** and **Firebase**.  
 Dodge potholes, collect coins, and climb the global rankings – all with a South African vibe.  
@@ -66,6 +66,7 @@ Challenge friends in multiplayer lobbies, unlock rewards, and enjoy a pixel-art 
 <p align="center">
   <img src="./readme/screenshot-7.png" width="30%"/>
   <img src="./readme/screenshot-8.png" width="30%"/>
+  <img src="./readme/screenshot-9.png" width="30%"/>
 </p>
 
 ### Mockups
