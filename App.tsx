@@ -13,6 +13,13 @@ import RankingsScreen from './src/screens/RankingsScreen';
 import GameScreen from './src/screens/GameScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 
+import { LogBox } from "react-native";
+
+LogBox.ignoreLogs([
+  "[expo-av]: Expo AV has been deprecated", 
+  "`setBackgroundColorAsync` is not supported with edge-to-edge enabled"
+]);
+
 const Stack = createStackNavigator();
 
 const theme = {

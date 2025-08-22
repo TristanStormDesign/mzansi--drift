@@ -343,13 +343,19 @@ export default function FriendsScreen() {
           const uri = item.photoUrl ?? item.photoBase64 ?? null;
           const when = item.createdAt?.toDate ? item.createdAt.toDate() : item.createdAt?._seconds ? new Date(item.createdAt._seconds * 1000) : null;
           return (
-            <View style={{ marginHorizontal: 20, marginBottom: 16, borderWidth: 4, borderColor: '#1A1A1A', borderRadius: 8, backgroundColor: '#0B1114', padding: 10 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={[styles.postText, { marginBottom: 0 }]}>{item.username ?? 'Player'}</Text>
-                <Text style={[styles.postText, { fontSize: 12, opacity: 0.7, marginBottom: 0 }]}>{when ? when.toLocaleString() : ''}</Text>
+            <View style={styles.postCard}>
+              <View style={styles.postHeader}>
+                <Text style={styles.postAuthor}>{item.username ?? 'Player'}</Text>
+                <Text style={styles.postTime}>{when ? when.toLocaleString() : ''}</Text>
               </View>
-              {uri ? <Image source={{ uri }} style={{ width: '100%', height: 220, borderRadius: 6, backgroundColor: '#2B2B2B' }} resizeMode="cover" /> : null}
-              <Text style={[styles.postText, { marginTop: 8 }]}>{item.type === 'high_score' ? `High score: ${item.score ?? 0}` : item.type === 'wooden_spoon' ? `Wooden spoon: ${item.score ?? 0}` : `Score: ${item.score ?? 0}`}</Text>
+              {uri ? <Image source={{ uri }} style={styles.postImage} resizeMode="cover" /> : null}
+              <Text style={styles.postText}>
+                {item.type === 'high_score'
+                  ? `High score: ${item.score ?? 0}`
+                  : item.type === 'wooden_spoon'
+                    ? `Wooden spoon: ${item.score ?? 0}`
+                    : `Score: ${item.score ?? 0}`}
+              </Text>
             </View>
           );
         }}
@@ -357,17 +363,19 @@ export default function FriendsScreen() {
         style={styles.feedList}
       />
 
+
       <View style={styles.bottomRow}>
         <TouchableOpacity style={styles.primaryButton} onPress={openAdd}>
           <Text style={styles.primaryButtonText}>ADD</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.primaryButton} onPress={openFriends}>
-          <Text style={styles.primaryButtonText}>FRIENDS</Text>
+        <TouchableOpacity style={styles.greyButton} onPress={openFriends}>
+          <Text style={styles.greyButtonText}>FRIENDS</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.returnButton} onPress={handleClose}>
           <Text style={styles.returnText}>RETURN</Text>
         </TouchableOpacity>
       </View>
+
 
       {showAdd && (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.overlayWrap}>

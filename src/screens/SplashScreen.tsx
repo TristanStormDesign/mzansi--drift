@@ -2,24 +2,28 @@ import React, { useEffect, useRef } from 'react';
 import { View, Animated } from 'react-native';
 import { useNavigation, StackActions } from '@react-navigation/native';
 import { splashStyles as styles } from '../styles/SplashStyles';
+import { useAudioPlayer } from 'expo-audio';
 
 export default function SplashScreen() {
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const player = useAudioPlayer(require('../assets/splash/splash.mp3'));
 
   useEffect(() => {
+    player.play();
+
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true
+        useNativeDriver: true,
       }),
       Animated.delay(4200),
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 800,
-        useNativeDriver: true
-      })
+        useNativeDriver: true,
+      }),
     ]).start(() => {
       navigation.dispatch(StackActions.replace('Menu' as never));
     });

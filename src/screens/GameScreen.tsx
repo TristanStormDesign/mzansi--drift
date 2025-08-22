@@ -22,7 +22,8 @@ import stockWingPlate from '../assets/garage/stock-wing-plate.webp';
 import stockStripesPlate from '../assets/garage/stock-stripes-plate.webp';
 import stockWingStripesPlate from '../assets/garage/stock-wing-stripes-plate.webp';
 import coinIcon from '../assets/coin/coin.webp';
-import { Audio, Video, ResizeMode, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { Video, ResizeMode } from 'expo-av';
+import { useAudioPlayer } from 'expo-audio';
 import { Camera, CameraView } from 'expo-camera';
 import { storage } from '../firebase/firebaseConfig';
 import * as FileSystem from 'expo-file-system';
@@ -113,11 +114,16 @@ export default function GameScreen() {
   const shownLiveHighRef = useRef(false);
   const potholeHitsRef = useRef(0);
 
-  const musicRef = useRef<Audio.Sound | null>(null);
-  const carRef = useRef<Audio.Sound | null>(null);
-  const potholeRefs = useRef<Audio.Sound[]>([]);
-  const crashRef = useRef<Audio.Sound | null>(null);
-  const hootRef = useRef<Audio.Sound | null>(null);
+  const musicPlayer = useAudioPlayer(require('../assets/game/game-music.mp3'));
+  const carPlayer = useAudioPlayer(require('../assets/game/car.mp3'));
+  const potholePlayers = [
+    useAudioPlayer(require('../assets/game/pothole-1.mp3')),
+    useAudioPlayer(require('../assets/game/pothole-2.mp3')),
+    useAudioPlayer(require('../assets/game/pothole-3.mp3')),
+  ];
+  const crashPlayer = useAudioPlayer(require('../assets/game/crash.mp3'));
+  const hootPlayer = useAudioPlayer(require('../assets/game/hoot.mp3'));
+
   const musicVolRef = useRef(0.06);
   const sfxVolRef = useRef(0.45);
   const musicMutedRef = useRef(false);
@@ -339,17 +345,18 @@ export default function GameScreen() {
     [setObstaclesSafe]
   );
 
-  const handleTaxiPassed = useCallback(async () => {
+  const handleTaxiPassed = useCallback(() => {
     taxiPassCountRef.current += 1;
     if (taxiPassCountRef.current % 5 === 0) {
       try {
-        if (hootRef.current && !sfxMutedRef.current) {
-          await hootRef.current.setVolumeAsync(sfxVolRef.current * 0.6);
-          await hootRef.current.replayAsync();
+        if (!sfxMutedRef.current) {
+          hootPlayer.volume = sfxVolRef.current * 0.6;
+          hootPlayer.play();
         }
       } catch { }
     }
-  }, []);
+  }, [hootPlayer]);
+
 
   const spawnObstacle = useCallback(
     (forceLane?: Lane, forceType?: ObstacleType) => {
@@ -469,14 +476,14 @@ export default function GameScreen() {
   const rectsOverlap = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
-  const stopLoopingAudio = useCallback(async () => {
+  const stopLoopingAudio = useCallback(() => {
     try {
-      if (carRef.current) await carRef.current.stopAsync();
+      carPlayer.pause();
     } catch { }
     try {
-      if (musicRef.current) await musicRef.current.stopAsync();
+      musicPlayer.pause();
     } catch { }
-  }, []);
+  }, [carPlayer, musicPlayer]);
 
   const createPostIfNeeded = useCallback(
     async (finalScore: number, type: 'high_score' | 'wooden_spoon') => {
@@ -554,47 +561,54 @@ export default function GameScreen() {
     openOverlay('game_over');
   }, [freezeAllObstacles, clearTimers, stopLoopingAudio, createPostIfNeeded]);
 
-  const startCollisionLoop = useCallback(
-    () => {
-      collideIntervalRef.current = setInterval(() => {
-        if (stateRef.current !== 'running') return;
-        const carRect = { x: laneX(laneRef.current), y: carY(), w: carWRef.current, h: carHRef.current };
-        let hit: { id: string; type: ObstacleType } | null = null;
-        const list = obstaclesRef.current;
-        for (const o of list) {
-          if (o.lane !== laneRef.current) continue;
-          const y = o.lastY;
-          const oRect = { x: laneX(o.lane), y, w: o.w, h: o.h };
-          if (rectsOverlap(carRect, oRect)) {
-            hit = { id: o.id, type: o.type };
-            break;
-          }
+  const startCollisionLoop = useCallback(() => {
+    collideIntervalRef.current = setInterval(() => {
+      if (stateRef.current !== 'running') return;
+
+      const carRect = {
+        x: laneX(laneRef.current),
+        y: carY(),
+        w: carWRef.current,
+        h: carHRef.current,
+      };
+
+      let hit: { id: string; type: ObstacleType } | null = null;
+      const list = obstaclesRef.current;
+
+      for (const o of list) {
+        if (o.lane !== laneRef.current) continue;
+        const y = o.lastY;
+        const oRect = { x: laneX(o.lane), y, w: o.w, h: o.h };
+        if (rectsOverlap(carRect, oRect)) {
+          hit = { id: o.id, type: o.type };
+          break;
         }
-        if (hit) {
-          if (hit.type === 'taxi') {
-            try {
-              if (crashRef.current && !sfxMutedRef.current) crashRef.current.replayAsync();
-            } catch { }
+      }
+
+      if (hit) {
+        if (hit.type === 'taxi') {
+          try {
+            if (!sfxMutedRef.current) crashPlayer.play();
+          } catch { }
+          handleGameOver();
+        } else {
+          potholeHitsRef.current += 1;
+          const idx = Math.min(potholeHitsRef.current, 3) - 1;
+          const s = potholePlayers[idx];
+          try {
+            if (s && !sfxMutedRef.current) s.play();
+          } catch { }
+          const nextLives = Math.max(0, livesRef.current - 1);
+          setLives(nextLives);
+          removeObstacle(hit.id);
+          if (nextLives <= 0) {
             handleGameOver();
-          } else {
-            potholeHitsRef.current += 1;
-            const idx = Math.min(potholeHitsRef.current, 3) - 1;
-            const s = potholeRefs.current[idx];
-            try {
-              if (s && !sfxMutedRef.current) s.replayAsync();
-            } catch { }
-            const nextLives = Math.max(0, livesRef.current - 1);
-            setLives(nextLives);
-            removeObstacle(hit.id);
-            if (nextLives <= 0) {
-              handleGameOver();
-            }
           }
         }
-      }, 50);
-    },
-    [carY, laneX, handleGameOver, removeObstacle]
-  );
+      }
+    }, 50);
+  }, [carY, laneX, handleGameOver, removeObstacle]);
+
 
   const openOverlay = useCallback(
     (mode: 'start' | 'game_over') => {
@@ -690,140 +704,62 @@ export default function GameScreen() {
     }
   }, [fontsLoaded, openOverlay]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        setCamGranted(status === 'granted');
-      } catch { }
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          staysActiveInBackground: false,
-          playsInSilentModeIOS: true,
-          shouldDuckAndroid: true,
-          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-        });
-      } catch { }
-      try {
-        const mv = await AsyncStorage.getItem('musicVolume');
-        const sv = await AsyncStorage.getItem('sfxVolume');
-        if (mv != null) {
-          const n = Number(mv);
-          if (!Number.isNaN(n)) musicVolRef.current = Math.max(0, Math.min(1, n));
-        }
-        if (sv != null) {
-          const n = Number(sv);
-          if (!Number.isNaN(n)) sfxVolRef.current = Math.max(0, Math.min(1, n));
-        }
-        const mm = await AsyncStorage.getItem('musicMuted');
-        const sm = await AsyncStorage.getItem('sfxMuted');
-        musicMutedRef.current = mm === 'true';
-        sfxMutedRef.current = sm === 'true';
-      } catch { }
-      try {
-        const music = new Audio.Sound();
-        await music.loadAsync(require('../assets/game/game-music.mp3'));
-        await music.setIsLoopingAsync(true);
-        await music.setVolumeAsync(musicMutedRef.current ? 0 : musicVolRef.current);
-        musicRef.current = music;
-      } catch { }
-      try {
-        const car = new Audio.Sound();
-        await car.loadAsync(require('../assets/game/car.mp3'));
-        await car.setIsLoopingAsync(true);
-        await car.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current * 0.35);
-        carRef.current = car;
-      } catch { }
-      try {
-        const p1 = new Audio.Sound();
-        await p1.loadAsync(require('../assets/game/pothole-1.mp3'));
-        await p1.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current);
-        const p2 = new Audio.Sound();
-        await p2.loadAsync(require('../assets/game/pothole-2.mp3'));
-        await p2.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current);
-        const p3 = new Audio.Sound();
-        await p3.loadAsync(require('../assets/game/pothole-3.mp3'));
-        await p3.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current);
-        potholeRefs.current = [p1, p2, p3];
-      } catch { }
-      try {
-        const crash = new Audio.Sound();
-        await crash.loadAsync(require('../assets/game/crash.mp3'));
-        await crash.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current);
-        crashRef.current = crash;
-      } catch { }
-      try {
-        const hoot = new Audio.Sound();
-        await hoot.loadAsync(require('../assets/game/hoot.mp3'));
-        await hoot.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current * 0.6);
-        hootRef.current = hoot;
-      } catch { }
-    })();
-    return () => {
-      (async () => {
-        try {
-          if (carRef.current) {
-            await carRef.current.stopAsync();
-            await carRef.current.unloadAsync();
-            carRef.current = null;
-          }
-        } catch { }
-        try {
-          if (musicRef.current) {
-            await musicRef.current.stopAsync();
-            await musicRef.current.unloadAsync();
-            musicRef.current = null;
-          }
-        } catch { }
-        for (const s of potholeRefs.current) {
-          try {
-            await s.unloadAsync();
-          } catch { }
-        }
-        potholeRefs.current = [];
-        try {
-          if (crashRef.current) {
-            await crashRef.current.unloadAsync();
-            crashRef.current = null;
-          }
-        } catch { }
-        try {
-          if (hootRef.current) {
-            await hootRef.current.unloadAsync();
-            hootRef.current = null;
-          }
-        } catch { }
-      })();
-    };
-  }, []);
+useEffect(() => {
+  (async () => {
+    try {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setCamGranted(status === 'granted');
+    } catch {}
 
-  useEffect(() => {
-    (async () => {
-      if (state === 'running') {
-        try {
-          if (musicRef.current) {
-            await musicRef.current.setVolumeAsync(musicMutedRef.current ? 0 : musicVolRef.current);
-            await musicRef.current.replayAsync();
-          }
-        } catch { }
-        try {
-          if (carRef.current) {
-            await carRef.current.setVolumeAsync(sfxMutedRef.current ? 0 : sfxVolRef.current * 0.35);
-            await carRef.current.replayAsync();
-          }
-        } catch { }
-      } else {
-        try {
-          if (carRef.current) await carRef.current.stopAsync();
-        } catch { }
-        try {
-          if (musicRef.current) await musicRef.current.stopAsync();
-        } catch { }
+    try {
+      const mv = await AsyncStorage.getItem('musicVolume');
+      const sv = await AsyncStorage.getItem('sfxVolume');
+      if (mv != null) {
+        const n = Number(mv);
+        if (!Number.isNaN(n)) musicVolRef.current = Math.max(0, Math.min(1, n));
       }
-    })();
-  }, [state]);
+      if (sv != null) {
+        const n = Number(sv);
+        if (!Number.isNaN(n)) sfxVolRef.current = Math.max(0, Math.min(1, n));
+      }
+      const mm = await AsyncStorage.getItem('musicMuted');
+      const sm = await AsyncStorage.getItem('sfxMuted');
+      musicMutedRef.current = mm === 'true';
+      sfxMutedRef.current = sm === 'true';
+    } catch {}
+
+    // Set initial volumes
+    musicPlayer.volume = musicMutedRef.current ? 0 : musicVolRef.current;
+    carPlayer.volume = sfxMutedRef.current ? 0 : sfxVolRef.current * 0.35;
+    potholePlayers.forEach((p) => (p.volume = sfxMutedRef.current ? 0 : sfxVolRef.current));
+    crashPlayer.volume = sfxMutedRef.current ? 0 : sfxVolRef.current;
+    hootPlayer.volume = sfxMutedRef.current ? 0 : sfxVolRef.current * 0.6;
+  })();
+
+  // ❌ no manual unload needed, expo-audio handles lifecycle
+}, []);
+
+useEffect(() => {
+  if (state === 'running') {
+    try {
+      musicPlayer.volume = musicMutedRef.current ? 0 : musicVolRef.current;
+      musicPlayer.play();
+    } catch {}
+
+    try {
+      carPlayer.volume = sfxMutedRef.current ? 0 : sfxVolRef.current * 0.35;
+      carPlayer.play();
+    } catch {}
+  } else {
+    try {
+      carPlayer.pause();
+    } catch {}
+    try {
+      musicPlayer.pause();
+    } catch {}
+  }
+}, [state, musicPlayer, carPlayer]);
+
 
   const carImage = useMemo(() => {
     if (wingEquipped && stripesEquipped && plateEquipped) return stockWingStripesPlate;

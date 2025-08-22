@@ -8,6 +8,8 @@ const redDark = '#8E1B1B';
 const lightGrey = '#E0E0E0';
 const handleBlue = '#4A5A6A';
 const handleBlueDark = '#2F3B47';
+const green = '#2E7D32';
+const greenDark = '#1B5E20';
 
 export const friendsStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
   StyleSheet.create({
@@ -23,66 +25,50 @@ export const friendsStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       textAlign: 'center',
       marginBottom: 16,
     },
-    composerRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 10,
-      paddingHorizontal: 20,
-      marginBottom: 12,
-    },
-    composerInput: {
-      flex: 1,
-      minHeight: 44,
-      maxHeight: 100,
-      borderWidth: 4,
-      borderColor: handleBlueDark,
-      backgroundColor: '#0B1114',
-      color: lightGrey,
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      borderRadius: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
-    },
-    composerButton: {
-      height: 56,
-      paddingHorizontal: 16,
-      backgroundColor: red,
-      borderWidth: 4,
-      borderColor: redDark,
-      borderRadius: 6,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    composerButtonText: {
-      fontFamily: 'Silkscreen_400Regular',
-      fontSize: 14,
-      color: lightGrey,
-    },
     feedList: {
       flex: 1,
       marginBottom: 20,
       paddingHorizontal: 20,
     },
+    // Instagram-like post card
     postCard: {
       backgroundColor: '#0B1114',
-      borderWidth: 4,
+      borderWidth: 3,
       borderColor: handleBlueDark,
-      borderRadius: 8,
+      borderRadius: 10,
+      overflow: 'hidden',
+      marginBottom: 16,
+      width: '100%',
+      alignSelf: 'center',
+    },
+    postHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       paddingHorizontal: 12,
-      paddingVertical: 10,
-      marginBottom: 10,
+      paddingVertical: 8,
     },
     postAuthor: {
       fontFamily: 'Silkscreen_400Regular',
+      fontSize: 14,
+      color: lightGrey,
+    },
+    postTime: {
+      fontFamily: 'Silkscreen_400Regular',
       fontSize: 12,
-      color: '#B0B8BF',
-      marginBottom: 6,
+      color: '#9AA0A6',
+    },
+    postImage: {
+      width: '100%',
+      aspectRatio: 1,
+      backgroundColor: grey,
     },
     postText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 16,
       color: lightGrey,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
     },
     emptyText: {
       fontFamily: 'Silkscreen_400Regular',
@@ -99,17 +85,34 @@ export const friendsStyles = (insets: ReturnType<typeof useSafeAreaInsets>) =>
       marginHorizontal: 20,
       gap: 12,
     },
+    // ADD button → green
     primaryButton: {
       flex: 1,
-      backgroundColor: red,
+      backgroundColor: green,
       borderWidth: 4,
-      borderColor: redDark,
+      borderColor: greenDark,
       borderRadius: 6,
       alignItems: 'center',
       justifyContent: 'center',
       height: 56,
     },
     primaryButtonText: {
+      fontFamily: 'Silkscreen_400Regular',
+      fontSize: 16,
+      color: lightGrey,
+    },
+    // FRIENDS button → grey
+    greyButton: {
+      flex: 1,
+      backgroundColor: handleBlue,
+      borderWidth: 4,
+      borderColor: handleBlueDark,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: 56,
+    },
+    greyButtonText: {
       fontFamily: 'Silkscreen_400Regular',
       fontSize: 16,
       color: lightGrey,

@@ -6,6 +6,7 @@ import { doc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 import { useFonts, Silkscreen_400Regular } from '@expo-google-fonts/silkscreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { settingsStyles } from '../styles/SettingsStyles';
 
 export default function SettingsScreen() {
@@ -26,16 +27,34 @@ export default function SettingsScreen() {
     Animated.timing(slideY, { toValue: 0, duration: 400, useNativeDriver: true }).start();
   }, []);
 
+  // Load saved mute states
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
-    });
+    (async () => {
+      try {
+        const mm = await AsyncStorage.getItem('musicMuted');
+        const sm = await AsyncStorage.getItem('sfxMuted');
+        setMusicMuted(mm === 'true');
+        setSfxMuted(sm === 'true');
+      } catch {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => setIsLoggedIn(!!user));
     return unsub;
   }, []);
+
+  const toggleMusic = async () => {
+    const next = !musicMuted;
+    setMusicMuted(next);
+    await AsyncStorage.setItem('musicMuted', String(next));
+  };
+
+  const toggleSfx = async () => {
+    const next = !sfxMuted;
+    setSfxMuted(next);
+    await AsyncStorage.setItem('sfxMuted', String(next));
+  };
 
   const openDeleteOverlay = () => {
     setShowDeleteOverlay(true);
@@ -50,7 +69,9 @@ export default function SettingsScreen() {
   };
 
   const handleClose = () => {
-    Animated.timing(slideY, { toValue: Dimensions.get('window').height, duration: 400, useNativeDriver: true }).start(() => navigation.goBack());
+    Animated.timing(slideY, { toValue: Dimensions.get('window').height, duration: 400, useNativeDriver: true }).start(() =>
+      navigation.goBack()
+    );
   };
 
   const panResponder = useRef(
@@ -110,11 +131,11 @@ export default function SettingsScreen() {
         <Text style={styles.heading}>SETTINGS</Text>
 
         <View style={styles.bottomSection}>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => setMusicMuted((v) => !v)}>
+          <TouchableOpacity style={styles.primaryButton} onPress={toggleMusic}>
             <Text style={styles.primaryButtonText}>{musicMuted ? 'UNMUTE MUSIC' : 'MUTE MUSIC'}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={() => setSfxMuted((v) => !v)}>
+          <TouchableOpacity style={styles.primaryButton} onPress={toggleSfx}>
             <Text style={styles.primaryButtonText}>{sfxMuted ? 'UNMUTE SFX' : 'MUTE SFX'}</Text>
           </TouchableOpacity>
 
