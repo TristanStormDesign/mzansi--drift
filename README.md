@@ -9,7 +9,7 @@ Challenge friends in multiplayer lobbies, unlock rewards, and enjoy a pixel-art 
 ---
 
 ## 📺 Demo Video  
-▶️ [Watch the YouTube Demo](https://youtube.com/your-demo-link)  
+▶️ [Watch the YouTube Demo](https://youtu.be/fKezjTW-bbY?si=kH7SIDK0TgwzTnUG)  
 
 ---
 
